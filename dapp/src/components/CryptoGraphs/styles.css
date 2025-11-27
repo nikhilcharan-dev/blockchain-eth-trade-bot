@@ -1,0 +1,106 @@
+.eth-chart {
+  display: flex;
+  gap: 20px;
+  max-width: 90svw;
+  margin: auto;
+  position: relative;
+}
+
+.trade-toggle-btn {
+  position: absolute;
+  top: 10px;
+  z-index: 10;
+  padding: 6px 12px;
+  background-color: black;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.eth-chart-container {
+  flex: 1;
+  padding-top: 40px;
+  transition: all 0.3s ease;
+}
+
+.eth-chart-container select {
+  padding: 6px;
+  margin-bottom: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.eth-chart-sidebar {
+  transition: all 0.3s ease;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-radius: 10px;
+  background-color: #fafafa;
+}
+
+.eth-chart-sidebar input {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.eth-chart-sidebar button {
+  width: 100%;
+  padding: 10px;
+  background-color: black;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.trade-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.trade-row {
+  border-bottom: 1px solid #ddd;
+}
+
+.trade-cell {
+  padding: 4px 2px;
+}
+
+.trade-color-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  margin-right: 6px;
+}
+
+.pnl-profit {
+  color: green;
+  font-weight: bold;
+}
+
+.pnl-loss {
+  color: red;
+  font-weight: bold;
+}
+
+.pnl-neutral {
+  color: gray;
+  font-weight: bold;
+}
+
+.delete-btn {
+  padding: 4px 8px;
+  background: red;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
