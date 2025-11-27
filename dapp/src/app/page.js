@@ -59,12 +59,12 @@ export default function page() {
             {content && (
                 <div className="nav-container">
                     <NavigationButton
-                        title="Dashboard"
+                        title="DASHBOARD"
                         url="/dashboard"
                     />
 
                     <NavigationButton
-                        title={loggedIn ? "Logout" : "Login"}
+                        title={loggedIn ? "LOGOUT" : "LOGIN"}
                         url={loggedIn ? "/logout" : "/login"}
                     />
                 </div>

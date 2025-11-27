@@ -23,7 +23,7 @@ const NavigationBar = () => {
 
     return (
         <nav>
-            <h3>Nikhil Charan</h3>
+            <h1>Nikhil Charan</h1>
             <ul>
                 <li>About</li>
                 <li>logout</li>

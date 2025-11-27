@@ -2,7 +2,7 @@
 .nav-button button {
   background: black;
   color: white;
-  padding: 7px 20px;
+  padding: 10px 20px;
 
   border-radius: 10px;
 
@@ -12,7 +12,6 @@
   text-align: center;
   font-weight: bold;
 
-  box-shadow: 0 4px 8px 0 rgb(33, 33, 33), 0 6px 20px 0 rgba(0, 0, 0, 0.6);
-
+  box-shadow: 0 0 8px 5px rgba(0, 0, 0, 2);
   transition: all 0.3s ease-in-out;
 }
