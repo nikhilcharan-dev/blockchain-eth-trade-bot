@@ -55,6 +55,12 @@ export async function GET(request) {
     });
   } catch (err) {
     console.error("Settings GET error:", err);
+    if (err.message?.includes("CREDENTIALS_ENCRYPTION_KEY")) {
+      return Response.json(
+        { error: "Server misconfiguration: encryption key not set" },
+        { status: 503 }
+      );
+    }
     return Response.json({ error: "Failed to fetch settings" }, { status: 500 });
   }
 }
@@ -100,6 +106,12 @@ export async function POST(request) {
     });
   } catch (err) {
     console.error("Settings POST error:", err);
+    if (err.message?.includes("CREDENTIALS_ENCRYPTION_KEY")) {
+      return Response.json(
+        { error: "Server misconfiguration: encryption key not set" },
+        { status: 503 }
+      );
+    }
     return Response.json({ error: "Failed to save settings" }, { status: 500 });
   }
 }
