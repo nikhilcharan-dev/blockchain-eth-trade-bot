@@ -1369,6 +1369,11 @@
     min-width: 260px;
   }
 
+  .ai-main-header-controls .ai-model-select-sm {
+    max-width: 160px;
+    font-size: 11px;
+  }
+
   .ai-empty-grid {
     grid-template-columns: 1fr;
   }
@@ -1385,6 +1390,36 @@
 @media (max-width: 480px) {
   .ai-chat {
     height: calc(100svh - 100px);
+  }
+
+  .ai-main-header {
+    gap: 8px;
+    padding: 8px 10px;
+    flex-wrap: wrap;
+  }
+
+  .ai-main-header-title {
+    font-size: 13px;
+  }
+
+  .ai-main-header-controls {
+    gap: 6px;
+  }
+
+  .ai-main-header-controls .ai-model-select-sm {
+    max-width: 120px;
+    font-size: 10px;
+    padding: 4px 6px;
+  }
+
+  .ai-main-settings-btn {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+
+  .ai-sidebar-toggle {
+    width: 30px;
+    height: 30px;
   }
 
   .ai-message {
@@ -1406,12 +1441,31 @@
     padding: 8px 12px 12px;
   }
 
-  .ai-main-header-title {
-    font-size: 13px;
-  }
-
   .ai-widget-panel {
     width: calc(100vw - 32px);
     right: -8px;
+  }
+
+  /* Settings panel mobile */
+  .ai-settings-panel {
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .ai-settings-section {
+    padding: 14px;
+  }
+
+  .ai-settings-actions {
+    flex-wrap: wrap;
+  }
+
+  .ai-builtin-model-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .ai-builtin-model-provider {
+    font-size: 9px;
   }
 }
