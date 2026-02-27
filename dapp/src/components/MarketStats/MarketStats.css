@@ -1,0 +1,121 @@
+.market-stats {
+  max-width: 90svw;
+  margin: 20px auto;
+  padding: 0 20px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.stat-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  padding: 20px;
+  backdrop-filter: blur(12px);
+  transition: border-color 0.2s;
+}
+
+.stat-card:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.stat-card-header {
+  font-size: 16px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.stat-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-high {
+  color: #00e676;
+}
+
+.stat-low {
+  color: #ff5252;
+}
+
+.stat-up {
+  color: #00e676;
+}
+
+.stat-down {
+  color: #ff5252;
+}
+
+/* Fear & Greed Gauge */
+.fear-greed-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.fear-greed-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  justify-content: center;
+}
+
+.fear-greed-gauge {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fear-greed-inner {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: #0a0a0a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fear-greed-score {
+  font-size: 36px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.fear-greed-label {
+  font-size: 16px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.fear-greed-loading {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.3);
+  padding: 40px;
+}

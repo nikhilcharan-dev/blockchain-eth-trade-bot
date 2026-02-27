@@ -5,11 +5,28 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  position: relative;
+  overflow: hidden;
+  background: #0a0a0a;
+}
+
+.home::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 30% 40%, rgba(99, 102, 241, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 60%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
+  pointer-events: none;
 }
 
 .home h1 {
   z-index: 1;
   font-size: 3vw;
+  background: linear-gradient(135deg, #e0e7ff, #a5b4fc, #6366f1);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .nav-container {
@@ -17,7 +34,7 @@
   flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 10vh;
-
+  gap: 24px;
+  z-index: 1;
   transition: all 0.3s ease-in;
 }

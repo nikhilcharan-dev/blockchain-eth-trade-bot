@@ -4,19 +4,26 @@
   max-width: 90svw;
   margin: auto;
   position: relative;
+  padding: 0 20px;
 }
 
 .trade-toggle-btn {
   position: absolute;
   top: 10px;
   z-index: 10;
-  padding: 6px 12px;
-  background-color: black;
-  color: white;
-  border: none;
-  border-radius: 10px;
+  padding: 6px 14px;
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 8px;
   font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s;
+}
+
+.trade-toggle-btn:hover {
+  background: rgba(99, 102, 241, 0.25);
 }
 
 .eth-chart-container {
@@ -25,38 +32,86 @@
   transition: all 0.3s ease;
 }
 
+.eth-chart-container h2 {
+  font-size: 20px;
+  color: #fff;
+  margin-bottom: 12px;
+}
+
 .eth-chart-container select {
-  padding: 6px;
-  margin-bottom: 10px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  font-size: 14px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.eth-chart-container select:focus {
+  border-color: rgba(99, 102, 241, 0.5);
+}
+
+.eth-chart-container select option {
+  background: #1a1a1a;
+  color: #fff;
 }
 
 .eth-chart-sidebar {
   transition: all 0.3s ease;
   overflow-y: auto;
   overflow-x: hidden;
-  border-radius: 10px;
-  background-color: #fafafa;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px);
+}
+
+.eth-chart-sidebar h3 {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 12px;
 }
 
 .eth-chart-sidebar input {
   width: 100%;
-  padding: 8px;
+  padding: 10px 12px;
   margin-bottom: 10px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.eth-chart-sidebar input::placeholder {
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.eth-chart-sidebar input:focus {
+  border-color: rgba(99, 102, 241, 0.5);
 }
 
 .eth-chart-sidebar button {
   width: 100%;
   padding: 10px;
-  background-color: black;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
   color: white;
   border: none;
   border-radius: 10px;
-  font-weight: bold;
+  font-weight: 600;
+  font-size: 14px;
   cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.eth-chart-sidebar button:hover {
+  opacity: 0.9;
 }
 
 .trade-table {
@@ -66,11 +121,13 @@
 }
 
 .trade-row {
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .trade-cell {
-  padding: 4px 2px;
+  padding: 8px 4px;
+  color: rgba(255, 255, 255, 0.7);
+  font-variant-numeric: tabular-nums;
 }
 
 .trade-color-dot {
@@ -82,25 +139,102 @@
 }
 
 .pnl-profit {
-  color: green;
-  font-weight: bold;
+  color: #00e676;
+  font-weight: 700;
 }
 
 .pnl-loss {
-  color: red;
-  font-weight: bold;
+  color: #ff5252;
+  font-weight: 700;
 }
 
 .pnl-neutral {
-  color: gray;
-  font-weight: bold;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 600;
 }
 
 .delete-btn {
-  padding: 4px 8px;
-  background: red;
-  color: white;
-  border: none;
-  border-radius: 6px;
+  padding: 4px 10px !important;
+  background: rgba(255, 82, 82, 0.15) !important;
+  color: #ff5252 !important;
+  border: 1px solid rgba(255, 82, 82, 0.25) !important;
+  border-radius: 6px !important;
   cursor: pointer;
+  font-size: 12px !important;
+  width: auto !important;
+  transition: all 0.2s !important;
+}
+
+.delete-btn:hover {
+  background: rgba(255, 82, 82, 0.3) !important;
+}
+
+/* MultiChart Wrapper */
+.multi-chart-wrapper {
+  max-width: 90svw;
+  margin: 40px auto 20px;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+}
+
+.multi-chart-header {
+  margin-bottom: 16px;
+}
+
+.multi-chart-header h2 {
+  font-size: 20px;
+  color: #fff;
+  margin-bottom: 12px;
+}
+
+.multi-chart-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.multi-chart-select {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  font-size: 14px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.multi-chart-select:focus {
+  border-color: rgba(99, 102, 241, 0.5);
+}
+
+.multi-chart-select option {
+  background: #1a1a1a;
+  color: #fff;
+}
+
+.multi-chart-input {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  font-size: 14px;
+  outline: none;
+  flex: 1;
+  min-width: 200px;
+  transition: border-color 0.2s;
+}
+
+.multi-chart-input::placeholder {
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.multi-chart-input:focus {
+  border-color: rgba(99, 102, 241, 0.5);
 }
