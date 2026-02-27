@@ -3,10 +3,10 @@ import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
 const ALGORITHM = "aes-256-gcm";
 
 function getEncryptionKey() {
-  const key = process.env.CREDENTIALS_ENCRYPTION_KEY;
+  const key = (process.env.CREDENTIALS_ENCRYPTION_KEY ?? "").trim().replace(/^["']|["']$/g, "");
   if (!key || key.length !== 64) {
     throw new Error(
-      "CREDENTIALS_ENCRYPTION_KEY must be a 64-char hex string (32 bytes). Generate with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\""
+      `CREDENTIALS_ENCRYPTION_KEY must be a 64-char hex string (32 bytes), got length ${key.length}. Generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
     );
   }
   return Buffer.from(key, "hex");
