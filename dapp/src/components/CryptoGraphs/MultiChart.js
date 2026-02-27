@@ -10,13 +10,14 @@ import {
     PointElement,
     Tooltip,
     Legend,
+    Filler,
 } from "chart.js";
+import './styles.css'
 
-ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Tooltip, Legend);
+ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Tooltip, Legend, Filler);
 
 export default function MultiChart() {
 
-    // Popular tokens
     const tokenList = [
         "BTC", "ETH", "SOL", "XRP", "BNB", "ADA", "DOGE", "DOT", "AVAX", "TRX",
         "LINK", "MATIC", "SHIB", "LTC", "UNI"
@@ -35,9 +36,11 @@ export default function MultiChart() {
 
     const formatTime = () => new Date().toLocaleTimeString();
 
-    // Realtime Token Prices
     useEffect(() => {
         if (tokenWS.current) tokenWS.current.close();
+
+        setTokenPrice([]);
+        setTokenTime([]);
 
         const symbol = token.toLowerCase() + "usdt";
         tokenWS.current = new WebSocket(`wss://stream.binance.com:9443/ws/${symbol}@trade`);
@@ -61,63 +64,86 @@ export default function MultiChart() {
     const makeBaseline = (v, length) => (v ? Array(length).fill(v) : []);
 
     return (
-        <div style={{ padding: "21vh 20px", maxWidth: "90svw", margin: "auto" }}>
-            <h2>{token} Global Price Chart</h2>
+        <div className="multi-chart-wrapper">
+            <div className="multi-chart-header">
+                <h2>{token} Global Price Chart</h2>
 
-            <select
-                value={token}
-                onChange={(e) => setToken(e.target.value)}
-                style={{
-                    padding: "10px",
-                    fontSize: "16px",
-                    border: "1px solid #aaa",
-                    borderRadius: "8px",
-                    marginBottom: "12px",
-                    display: "block",
-                }}
-            >
-                {tokenList.map((t) => (
-                    <option key={t} value={t}>
-                        {t}
-                    </option>
-                ))}
-            </select>
+                <div className="multi-chart-controls">
+                    <select
+                        value={token}
+                        onChange={(e) => setToken(e.target.value)}
+                        className="multi-chart-select"
+                    >
+                        {tokenList.map((t) => (
+                            <option key={t} value={t}>
+                                {t}/USDT
+                            </option>
+                        ))}
+                    </select>
 
-            <input
-                type="number"
-                placeholder="Set baseline"
-                value={baseline}
-                onChange={(e) => setBaseline(e.target.value)}
-                style={{
-                    padding: "8px",
-                    marginBottom: "20px",
-                    borderRadius: "8px",
-                    border: "1px solid #aaa",
-                    width: "100%",
-                }}
-            />
+                    <input
+                        type="number"
+                        placeholder="Set baseline price..."
+                        value={baseline}
+                        onChange={(e) => setBaseline(e.target.value)}
+                        className="multi-chart-input"
+                    />
+                </div>
+            </div>
 
-            <Line
-                data={{
-                    labels: tokenTime,
-                    datasets: [
-                        {
-                            label: `${token}/USDT`,
-                            data: tokenPrice,
-                            borderColor: "rgba(255,99,132,1)",
-                            tension: 0.4,
+            <div style={{ height: "350px" }}>
+                <Line
+                    data={{
+                        labels: tokenTime,
+                        datasets: [
+                            {
+                                label: `${token}/USDT`,
+                                data: tokenPrice,
+                                borderColor: "#8b5cf6",
+                                backgroundColor: "rgba(139, 92, 246, 0.1)",
+                                tension: 0.4,
+                                fill: true,
+                            },
+                            ...(baselineValue
+                                ? [
+                                    {
+                                        label: "Baseline",
+                                        data: makeBaseline(baselineValue, tokenPrice.length),
+                                        borderColor: "rgba(255, 255, 255, 0.3)",
+                                        borderDash: [6, 6],
+                                        tension: 0,
+                                        pointRadius: 0,
+                                    },
+                                ]
+                                : []),
+                        ],
+                    }}
+                    options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                ticks: {
+                                    color: "rgba(255,255,255,0.3)",
+                                    autoSkip: true,
+                                    maxRotation: 0,
+                                },
+                                grid: { color: "rgba(255,255,255,0.04)" },
+                            },
+                            y: {
+                                position: "right",
+                                ticks: { color: "rgba(255,255,255,0.3)" },
+                                grid: { color: "rgba(255,255,255,0.04)" },
+                            },
                         },
-                        {
-                            label: "Baseline",
-                            data: makeBaseline(baselineValue, tokenPrice.length),
-                            borderColor: "black",
-                            borderDash: [6, 6],
-                            tension: 0,
+                        plugins: {
+                            legend: {
+                                labels: { color: "rgba(255,255,255,0.6)" },
+                            },
                         },
-                    ],
-                }}
-                height={100}
-            />
+                    }}
+                />
+            </div>
         </div>
     );
 }

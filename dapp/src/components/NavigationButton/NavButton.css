@@ -1,17 +1,26 @@
 
 .nav-button button {
-  background: black;
+  background: rgba(255, 255, 255, 0.04);
   color: white;
-  padding: 10px 20px;
+  padding: 12px 28px;
 
-  border-radius: 10px;
+  border-radius: 12px;
 
   cursor: pointer;
   display: inline-block;
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   text-align: center;
-  font-weight: bold;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 1px;
 
-  box-shadow: 0 0 8px 5px rgba(0, 0, 0, 2);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   transition: all 0.3s ease-in-out;
+}
+
+.nav-button button:hover {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.3);
+  box-shadow: 0 4px 30px rgba(99, 102, 241, 0.15);
 }

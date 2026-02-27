@@ -10,10 +10,11 @@ import {
     PointElement,
     Tooltip,
     Legend,
+    Filler,
 } from "chart.js";
 import './styles.css'
 
-ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Tooltip, Legend);
+ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Tooltip, Legend, Filler);
 
 export default function MainChart() {
 
@@ -172,8 +173,10 @@ export default function MainChart() {
                                 {
                                     label: `ETH/${mode}`,
                                     data: ethPrice,
-                                    borderColor: "rgba(99,132,255,1)",
+                                    borderColor: "#6366f1",
+                                    backgroundColor: "rgba(99, 102, 241, 0.1)",
                                     tension: 0.4,
+                                    fill: true,
                                 },
                                 ...buyLineDatasets,
                                 ...buyMarkers,
@@ -184,12 +187,20 @@ export default function MainChart() {
                             maintainAspectRatio: false,
                             scales: {
                                 x: {
-                                    ticks: { autoSkip: true, maxRotation: 0, minRotation: 0 },
+                                    ticks: { color: "rgba(255,255,255,0.3)", autoSkip: true, maxRotation: 0, minRotation: 0 },
+                                    grid: { color: "rgba(255,255,255,0.04)" },
                                 },
-                                y: { position: "right" },
+                                y: {
+                                    position: "right",
+                                    ticks: { color: "rgba(255,255,255,0.3)" },
+                                    grid: { color: "rgba(255,255,255,0.04)" },
+                                },
                             },
                             plugins: {
-                                legend: { position: "top" },
+                                legend: {
+                                    position: "top",
+                                    labels: { color: "rgba(255,255,255,0.6)" },
+                                },
                             },
                         }}
                     />
@@ -201,7 +212,7 @@ export default function MainChart() {
                 style={{
                     minWidth: isSidebarOpen ? "20svw" : "0px",
                     padding: isSidebarOpen ? "20px" : "20px 0",
-                    border: isSidebarOpen ? "1px solid #ccc" : "none",
+                    border: isSidebarOpen ? "1px solid rgba(255,255,255,0.06)" : "none",
                 }}
             >
                 {isSidebarOpen && (

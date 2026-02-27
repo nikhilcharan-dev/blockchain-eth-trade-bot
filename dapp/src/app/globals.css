@@ -1,26 +1,27 @@
 :root {
-    --background: #000000;
+    --background: #0a0a0a;
     --foreground: #ffffff;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-      --background: #ffffff;
-      --foreground: #000000;
-  }
+    --accent: #6366f1;
+    --accent-light: #a5b4fc;
+    --surface: rgba(255, 255, 255, 0.03);
+    --border: rgba(255, 255, 255, 0.06);
+    --text-primary: rgba(255, 255, 255, 0.9);
+    --text-secondary: rgba(255, 255, 255, 0.5);
+    --text-muted: rgba(255, 255, 255, 0.3);
+    --green: #00e676;
+    --red: #ff5252;
 }
 
 html,
 body {
   max-width: 100vw;
   overflow-x: hidden;
-  font-family: var(--font-myFont), sans-serif;
+  font-family: var(--font-myFont), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -32,7 +33,7 @@ body {
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-myHeader), sans-serif;
+  font-family: var(--font-myHeader), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 a {
@@ -40,12 +41,24 @@ a {
   text-decoration: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+::-webkit-scrollbar {
+  width: 6px;
 }
 
-::-webkit-scrollbar {
-  display: none;
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+::selection {
+  background: rgba(99, 102, 241, 0.3);
+  color: #fff;
 }
