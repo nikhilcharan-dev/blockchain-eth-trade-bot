@@ -107,6 +107,32 @@
   background: rgba(255, 82, 82, 0.2);
 }
 
+/* Currency Toggle */
+.currency-toggle {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 2px;
+  cursor: pointer;
+  gap: 0;
+}
+
+.currency-option {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.35);
+  transition: all 0.2s;
+}
+
+.currency-active {
+  color: #fff;
+  background: rgba(99, 102, 241, 0.25);
+}
+
 /* Dashboard Content */
 .dashboard-content {
   padding: 20px 0 40px;

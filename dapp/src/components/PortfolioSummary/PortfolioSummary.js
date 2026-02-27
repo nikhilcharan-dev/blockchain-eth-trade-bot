@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
+import { useCurrency } from "@/context/CurrencyContext";
 import "./PortfolioSummary.css";
 
 const AVAILABLE_TOKENS = [
@@ -24,66 +25,36 @@ function saveHoldings(holdings) {
 
 export default function PortfolioSummary() {
   const [holdings, setHoldings] = useState([]);
-  const [prices, setPrices] = useState({});
   const [totalValue, setTotalValue] = useState(0);
   const [change24h, setChange24h] = useState(0);
   const [showAdd, setShowAdd] = useState(false);
   const [newSymbol, setNewSymbol] = useState("");
   const [newAmount, setNewAmount] = useState("");
-  const wsRef = useRef(null);
 
-  // Load holdings from localStorage on mount
+  const { wazirxPrices, formatValue } = useCurrency();
+
+  // Load holdings on mount
   useEffect(() => {
     setHoldings(loadHoldings());
   }, []);
 
-  // WebSocket connection for real-time prices
+  // Calculate totals from WazirX prices
   useEffect(() => {
-    if (wsRef.current) wsRef.current.close();
-    if (holdings.length === 0) return;
-
-    const streams = holdings
-      .map((h) => `${h.symbol.toLowerCase()}usdt@miniTicker`)
-      .join("/");
-
-    wsRef.current = new WebSocket(
-      `wss://stream.binance.com:9443/stream?streams=${streams}`
-    );
-
-    wsRef.current.onmessage = (msg) => {
-      const { data } = JSON.parse(msg.data);
-      if (!data) return;
-
-      const symbol = data.s?.replace("USDT", "");
-      const price = parseFloat(data.c);
-      const change = parseFloat(data.P);
-
-      setPrices((prev) => ({
-        ...prev,
-        [symbol]: { price, change },
-      }));
-    };
-
-    return () => wsRef.current?.close();
-  }, [holdings]);
-
-  // Calculate totals
-  useEffect(() => {
-    let total = 0;
+    let totalInr = 0;
     let weightedChange = 0;
 
     for (const h of holdings) {
-      const p = prices[h.symbol];
+      const p = wazirxPrices[h.symbol];
       if (p) {
-        const val = h.amount * p.price;
-        total += val;
+        const val = h.amount * p.priceInr;
+        totalInr += val;
         weightedChange += val * (p.change / 100);
       }
     }
 
-    setTotalValue(total);
-    setChange24h(total > 0 ? (weightedChange / total) * 100 : 0);
-  }, [prices, holdings]);
+    setTotalValue(totalInr);
+    setChange24h(totalInr > 0 ? (weightedChange / totalInr) * 100 : 0);
+  }, [wazirxPrices, holdings]);
 
   const addHolding = () => {
     const symbol = newSymbol.toUpperCase().trim();
@@ -124,7 +95,7 @@ export default function PortfolioSummary() {
       <div className="portfolio-card portfolio-total">
         <span className="portfolio-label">Portfolio Value</span>
         <span className="portfolio-value">
-          ${totalValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          {formatValue(totalValue)}
         </span>
         <span className={`portfolio-change ${changeClass}`}>
           {change24h >= 0 ? "+" : ""}
@@ -174,9 +145,9 @@ export default function PortfolioSummary() {
 
       <div className="portfolio-holdings">
         {holdings.map((h) => {
-          const p = prices[h.symbol];
-          const val = p ? h.amount * p.price : 0;
-          const pct = totalValue > 0 ? (val / totalValue) * 100 : 0;
+          const p = wazirxPrices[h.symbol];
+          const valInr = p ? h.amount * p.priceInr : 0;
+          const pct = totalValue > 0 ? (valInr / totalValue) * 100 : 0;
 
           return (
             <div key={h.symbol} className="portfolio-holding-card">
@@ -194,7 +165,7 @@ export default function PortfolioSummary() {
                 <span className="holding-amount">{h.amount} {h.symbol}</span>
               </div>
               <div className="holding-value">
-                ${val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {formatValue(valInr)}
               </div>
               <div className="holding-bar-container">
                 <div
