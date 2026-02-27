@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { useCurrency } from "@/context/CurrencyContext";
 import "./AiChat.css";
 
@@ -816,7 +817,7 @@ export default function AiChat({ compact = false }) {
                       </div>
                       <div className="ai-message-content">
                         {m.role === "assistant" && !m.isError ? (
-                          <ReactMarkdown>{m.content}</ReactMarkdown>
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
                         ) : (
                           m.content
                         )}

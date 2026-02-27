@@ -638,6 +638,10 @@
   border-collapse: collapse;
   margin: 12px 0;
   font-size: 13px;
+  display: block;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
 }
 
 .ai-message-ai .ai-message-content th {
