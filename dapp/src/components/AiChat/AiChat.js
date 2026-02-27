@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import ReactMarkdown from "react-markdown";
 import { useCurrency } from "@/context/CurrencyContext";
 import "./AiChat.css";
 
@@ -10,6 +11,7 @@ const QUICK_PROMPTS = [
   "Which tokens are performing best right now?",
   "Summarize ETH vs SOL today",
   "Any tokens showing bearish signals?",
+  "Give me a portfolio overview",
 ];
 
 const SETTINGS_KEY = "ai_bot_settings";
@@ -248,15 +250,15 @@ export default function AiChat({ compact = false }) {
   const settingsPanel = (
     <div className="ai-settings-panel">
       <div className="ai-settings-header">
-        <h3>AI Bot Settings</h3>
-        <button className="ai-settings-close" onClick={() => setShowSettings(false)}>
+        <h3>Settings</h3>
+        <button className="ai-settings-back" onClick={() => setShowSettings(false)}>
           Back to Chat
         </button>
       </div>
 
       {/* AWS Credentials */}
       <div className="ai-settings-section">
-        <h4>AWS Credentials (Required)</h4>
+        <h4>AWS Credentials</h4>
         <p className="ai-settings-hint">
           AWS Console &rarr; IAM &rarr; Users &rarr; Security Credentials &rarr; Create Access Key
         </p>
@@ -304,7 +306,7 @@ export default function AiChat({ compact = false }) {
       <div className="ai-settings-section">
         <h4>Built-in Models</h4>
         <p className="ai-settings-hint">
-          These come pre-configured. Make sure to enable them in AWS Bedrock Console &rarr; Model Access.
+          Pre-configured models. Enable them in AWS Bedrock Console &rarr; Model Access.
         </p>
         <div className="ai-builtin-models-list">
           {builtInModels.map((m) => (
@@ -321,8 +323,7 @@ export default function AiChat({ compact = false }) {
       <div className="ai-settings-section">
         <h4>Custom Models</h4>
         <p className="ai-settings-hint">
-          Add any Bedrock model by its model ID. Find model IDs in AWS Bedrock Console &rarr; Foundation Models.
-          For example: GPT models via Bedrock marketplace, Qwen, or any newly added model.
+          Add any Bedrock model by its model ID. Find IDs in AWS Bedrock Console &rarr; Foundation Models.
         </p>
 
         {customModels.length > 0 && (
@@ -369,7 +370,7 @@ export default function AiChat({ compact = false }) {
         </div>
 
         <div className="ai-model-examples">
-          <span className="ai-model-examples-title">Example model IDs:</span>
+          <span className="ai-model-examples-title">Quick fill:</span>
           <div className="ai-model-example-chips">
             {[
               { name: "Qwen 2.5", id: "qwen.qwen2-5-72b-instruct-v1:0" },
@@ -408,7 +409,7 @@ export default function AiChat({ compact = false }) {
       {showEnvExport && (
         <div className="ai-env-export">
           <div className="ai-env-export-header">
-            <span>Copy this into your hosting platform&apos;s environment variables</span>
+            <span>Copy into your hosting environment variables</span>
             <button className="ai-env-copy-btn" onClick={copyEnvToClipboard}>
               Copy
             </button>
@@ -424,141 +425,226 @@ export default function AiChat({ compact = false }) {
     </div>
   );
 
+  // ==========================================================
+  // RENDER
+  // ==========================================================
   return (
     <div className={`ai-chat ${compact ? "ai-chat-compact" : ""}`}>
-      {/* Header — Full */}
+      {/* ===== SIDEBAR (full page only) ===== */}
       {!compact && (
-        <div className="ai-chat-header">
-          <div className="ai-chat-title-row">
-            <h2 className="ai-chat-title">CryptoDash AI</h2>
-            <span className="ai-chat-badge">Powered by Amazon Bedrock</span>
-          </div>
-          <p className="ai-chat-subtitle">
-            Ask about market trends, price analysis, and trading insights — powered by live WazirX data
-          </p>
-          <div className="ai-chat-controls">
-            {modelSelector(false)}
-            <button className="ai-clear-btn" onClick={clearChat}>
-              Clear Chat
-            </button>
-            <button
-              className={`ai-settings-btn ${hasCredentials ? "" : "ai-settings-btn-warn"}`}
-              onClick={() => setShowSettings(!showSettings)}
-            >
-              {showSettings ? "Chat" : "Settings"}
-            </button>
-          </div>
-          {!hasCredentials && !showSettings && (
-            <div className="ai-credentials-banner">
-              AWS credentials not configured.
-              <button onClick={() => setShowSettings(true)}>Open Settings</button>
-              to add your keys.
+        <aside className="ai-sidebar">
+          <div className="ai-sidebar-top">
+            <div className="ai-sidebar-brand">
+              <div className="ai-sidebar-logo">AI</div>
+              <div>
+                <div className="ai-sidebar-title">CryptoDash AI</div>
+                <div className="ai-sidebar-subtitle">Powered by Bedrock</div>
+              </div>
             </div>
-          )}
-        </div>
-      )}
+            <button className="ai-new-chat-btn" onClick={clearChat}>
+              + New Chat
+            </button>
+          </div>
 
-      {/* Header — Compact */}
-      {compact && (
-        <div className="ai-chat-compact-header">
-          <span className="ai-chat-compact-title">CryptoDash AI</span>
-          <div className="ai-chat-compact-controls">
-            {modelSelector(true)}
+          <div className="ai-sidebar-body">
+            <div className="ai-sidebar-section">
+              <span className="ai-sidebar-label">Model</span>
+              {modelSelector(false)}
+            </div>
+
+            {hasCredentials && (
+              <div className="ai-sidebar-section">
+                <span className="ai-sidebar-label">Suggestions</span>
+                <div className="ai-sidebar-prompts">
+                  {QUICK_PROMPTS.map((q, i) => (
+                    <button
+                      key={i}
+                      className="ai-sidebar-prompt"
+                      onClick={() => sendMessage(q)}
+                    >
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="ai-sidebar-footer">
+            {!hasCredentials && (
+              <div className="ai-cred-warning">
+                AWS credentials required
+              </div>
+            )}
             <button
-              className="ai-settings-btn-sm"
+              className={`ai-sidebar-settings-btn ${!hasCredentials ? "ai-sidebar-settings-warn" : ""}`}
               onClick={() => setShowSettings(!showSettings)}
-              title="Settings"
             >
-              {showSettings ? "Chat" : "Cfg"}
+              {showSettings ? "Back to Chat" : "Settings"}
             </button>
           </div>
-        </div>
+        </aside>
       )}
 
-      {/* Settings or Chat */}
-      {showSettings ? (
-        settingsPanel
-      ) : (
-        <>
-          {/* Messages */}
-          <div className="ai-chat-messages">
-            {messages.length === 0 && (
-              <div className="ai-chat-empty">
-                <div className="ai-chat-empty-icon">AI</div>
-                <p>{compact ? "Ask me anything about the market" : "Ask me about market trends, token analysis, or trading strategies"}</p>
-                {!compact && hasCredentials && (
-                  <div className="ai-quick-prompts">
-                    {QUICK_PROMPTS.map((q, i) => (
-                      <button
-                        key={i}
-                        className="ai-quick-prompt"
-                        onClick={() => sendMessage(q)}
-                      >
-                        {q}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {!compact && !hasCredentials && (
-                  <button
-                    className="ai-quick-prompt"
-                    onClick={() => setShowSettings(true)}
-                  >
-                    Configure AWS credentials to get started
-                  </button>
-                )}
-              </div>
-            )}
-
-            {messages.map((m, i) => (
-              <div
-                key={i}
-                className={`ai-msg ${m.role === "user" ? "ai-msg-user" : "ai-msg-assistant"} ${m.isError ? "ai-msg-error" : ""}`}
+      {/* ===== MAIN AREA ===== */}
+      <div className="ai-main">
+        {/* Compact header */}
+        {compact && (
+          <div className="ai-compact-header">
+            <span className="ai-compact-title">CryptoDash AI</span>
+            <div className="ai-compact-controls">
+              {modelSelector(true)}
+              <button
+                className="ai-compact-cfg-btn"
+                onClick={() => setShowSettings(!showSettings)}
               >
-                <div className="ai-msg-avatar">
-                  {m.role === "user" ? "You" : "AI"}
-                </div>
-                <div className="ai-msg-body">
-                  {m.model && <span className="ai-msg-model">{m.model}</span>}
-                  <div className="ai-msg-content">{m.content}</div>
-                </div>
-              </div>
-            ))}
+                {showSettings ? "Chat" : "Cfg"}
+              </button>
+            </div>
+          </div>
+        )}
 
-            {loading && (
-              <div className="ai-msg ai-msg-assistant">
-                <div className="ai-msg-avatar">AI</div>
-                <div className="ai-msg-body">
-                  <div className="ai-typing">
-                    <span></span><span></span><span></span>
+        {/* Content: Settings or Chat */}
+        {showSettings ? (
+          settingsPanel
+        ) : (
+          <>
+            {/* Messages */}
+            <div className="ai-messages">
+              {messages.length === 0 && (
+                <div className="ai-empty-state">
+                  <div className="ai-empty-icon">AI</div>
+                  <h3 className="ai-empty-title">
+                    {compact ? "Ask anything" : "How can I help you today?"}
+                  </h3>
+                  <p className="ai-empty-sub">
+                    {compact
+                      ? "Market analysis with live data"
+                      : "AI-powered crypto market analysis with real-time WazirX data"}
+                  </p>
+
+                  {!compact && hasCredentials && (
+                    <div className="ai-empty-grid">
+                      {QUICK_PROMPTS.slice(0, 4).map((q, i) => (
+                        <button
+                          key={i}
+                          className="ai-empty-card"
+                          onClick={() => sendMessage(q)}
+                        >
+                          {q}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {!compact && !hasCredentials && (
+                    <button
+                      className="ai-empty-setup"
+                      onClick={() => setShowSettings(true)}
+                    >
+                      Configure AWS credentials to get started
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {messages.map((m, i) => (
+                <div
+                  key={i}
+                  className={`ai-message ${
+                    m.role === "user" ? "ai-message-user" : "ai-message-ai"
+                  } ${m.isError ? "ai-message-error" : ""}`}
+                >
+                  <div className="ai-message-row">
+                    <div className="ai-message-avatar">
+                      {m.role === "user" ? "Y" : "AI"}
+                    </div>
+                    <div className="ai-message-body">
+                      <div className="ai-message-meta">
+                        <span className="ai-message-role">
+                          {m.role === "user" ? "You" : "CryptoDash AI"}
+                        </span>
+                        {m.model && (
+                          <span className="ai-message-model">{m.model}</span>
+                        )}
+                      </div>
+                      <div className="ai-message-content">
+                        {m.role === "assistant" && !m.isError ? (
+                          <ReactMarkdown>{m.content}</ReactMarkdown>
+                        ) : (
+                          m.content
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
+              ))}
+
+              {loading && (
+                <div className="ai-message ai-message-ai">
+                  <div className="ai-message-row">
+                    <div className="ai-message-avatar">AI</div>
+                    <div className="ai-message-body">
+                      <div className="ai-message-meta">
+                        <span className="ai-message-role">CryptoDash AI</span>
+                      </div>
+                      <div className="ai-typing">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div ref={chatEndRef} />
+            </div>
+
+            {/* Input area */}
+            <div className="ai-input-area">
+              <div className="ai-input-wrapper">
+                <textarea
+                  className="ai-input"
+                  placeholder={
+                    hasCredentials
+                      ? "Message CryptoDash AI..."
+                      : "Configure AWS keys in Settings first..."
+                  }
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  rows={1}
+                />
+                <button
+                  className="ai-send-btn"
+                  onClick={() => sendMessage()}
+                  disabled={loading || !input.trim()}
+                >
+                  {loading ? (
+                    <span className="ai-send-dots">...</span>
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path
+                        d="M2 8L14 8M14 8L9 3M14 8L9 13"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  )}
+                </button>
               </div>
-            )}
-
-            <div ref={chatEndRef} />
-          </div>
-
-          {/* Input */}
-          <div className="ai-chat-input-row">
-            <textarea
-              className="ai-chat-input"
-              placeholder={hasCredentials ? "Ask about market trends, prices, analysis..." : "Configure AWS keys in Settings first..."}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              rows={1}
-            />
-            <button
-              className="ai-send-btn"
-              onClick={() => sendMessage()}
-              disabled={loading || !input.trim()}
-            >
-              {loading ? "..." : "Send"}
-            </button>
-          </div>
-        </>
-      )}
+              {!compact && (
+                <p className="ai-disclaimer">
+                  AI analysis is not financial advice. Always do your own research.
+                </p>
+              )}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
