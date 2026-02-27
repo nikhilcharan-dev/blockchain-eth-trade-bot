@@ -3,31 +3,20 @@ import {
   ConverseCommand,
 } from "@aws-sdk/client-bedrock-runtime";
 
-// Model presets — users configure via env or pick from UI
-const MODEL_PRESETS = {
+const DEFAULT_MODELS = {
   claude: {
-    id: process.env.BEDROCK_CLAUDE_MODEL_ID || "anthropic.claude-3-5-sonnet-20241022-v2:0",
+    id: "anthropic.claude-3-5-sonnet-20241022-v2:0",
     label: "Claude (Anthropic)",
   },
   llama: {
-    id: process.env.BEDROCK_LLAMA_MODEL_ID || "meta.llama3-1-70b-instruct-v1:0",
+    id: "meta.llama3-1-70b-instruct-v1:0",
     label: "Llama (Meta)",
   },
   mistral: {
-    id: process.env.BEDROCK_MISTRAL_MODEL_ID || "mistral.mistral-large-2407-v1:0",
+    id: "mistral.mistral-large-2407-v1:0",
     label: "Mistral",
   },
 };
-
-const client = new BedrockRuntimeClient({
-  region: process.env.AWS_REGION || "us-east-1",
-  credentials: process.env.AWS_ACCESS_KEY_ID
-    ? {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-      }
-    : undefined, // falls back to default credential chain
-});
 
 const SYSTEM_PROMPT = `You are CryptoDash AI, a crypto market analyst assistant embedded in a trading dashboard.
 You have access to real-time WazirX market data provided as context.
@@ -48,13 +37,48 @@ Rules:
 
 export async function POST(request) {
   try {
-    const { messages, model: modelKey, marketContext } = await request.json();
+    const {
+      messages,
+      model: modelKey,
+      marketContext,
+      credentials,
+    } = await request.json();
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return Response.json({ error: "Messages are required" }, { status: 400 });
     }
 
-    const preset = MODEL_PRESETS[modelKey] || MODEL_PRESETS.claude;
+    // Credentials can come from request body or env vars
+    const accessKeyId = credentials?.awsAccessKeyId || process.env.AWS_ACCESS_KEY_ID;
+    const secretAccessKey = credentials?.awsSecretAccessKey || process.env.AWS_SECRET_ACCESS_KEY;
+    const region = credentials?.awsRegion || process.env.AWS_REGION || "us-east-1";
+
+    if (!accessKeyId || !secretAccessKey) {
+      return Response.json(
+        {
+          error: "AWS credentials not configured",
+          hint: "Go to the AI Bot tab → Settings to add your AWS Access Key ID and Secret Access Key.",
+        },
+        { status: 401 }
+      );
+    }
+
+    // Build model config — check for custom model IDs from credentials
+    const modelPresets = { ...DEFAULT_MODELS };
+    if (credentials?.claudeModelId) modelPresets.claude = { ...modelPresets.claude, id: credentials.claudeModelId };
+    if (credentials?.llamaModelId) modelPresets.llama = { ...modelPresets.llama, id: credentials.llamaModelId };
+    if (credentials?.mistralModelId) modelPresets.mistral = { ...modelPresets.mistral, id: credentials.mistralModelId };
+
+    const preset = modelPresets[modelKey] || modelPresets.claude;
+
+    // Create client per request with provided credentials
+    const client = new BedrockRuntimeClient({
+      region,
+      credentials: {
+        accessKeyId,
+        secretAccessKey,
+      },
+    });
 
     // Build system prompt with live market data
     let systemText = SYSTEM_PROMPT;
@@ -62,7 +86,6 @@ export async function POST(request) {
       systemText += `\n\nCurrent WazirX Market Data (INR):\n${marketContext}`;
     }
 
-    // Convert messages to Bedrock Converse format
     const converseMessages = messages.map((m) => ({
       role: m.role === "user" ? "user" : "assistant",
       content: [{ text: m.content }],
@@ -92,24 +115,23 @@ export async function POST(request) {
   } catch (err) {
     console.error("Bedrock API error:", err);
 
-    const status = err.name === "AccessDeniedException" ? 403 : 500;
+    let hint;
+    if (err.name === "AccessDeniedException" || err.name === "UnrecognizedClientException") {
+      hint = "Invalid AWS credentials or you don't have access to this Bedrock model. Check your keys and enable model access in the AWS Bedrock console.";
+    } else if (err.name === "ValidationException") {
+      hint = "The selected model ID may be invalid or not available in your region. Try a different model or region.";
+    }
+
     return Response.json(
-      {
-        error: "AI request failed",
-        details: err.message,
-        hint:
-          status === 403
-            ? "Check your AWS credentials and Bedrock model access in the AWS console."
-            : undefined,
-      },
-      { status }
+      { error: "AI request failed", details: err.message, hint },
+      { status: err.name === "AccessDeniedException" ? 403 : 500 }
     );
   }
 }
 
 // Expose available models
 export async function GET() {
-  const models = Object.entries(MODEL_PRESETS).map(([key, val]) => ({
+  const models = Object.entries(DEFAULT_MODELS).map(([key, val]) => ({
     key,
     id: val.id,
     label: val.label,
