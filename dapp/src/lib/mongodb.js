@@ -7,9 +7,9 @@ if (!cached) {
 }
 
 export default async function connectDB() {
-  const MONGODB_URI = process.env.VITE_MONGODB_URL;
+  const MONGODB_URI = process.env.MONGODB_URL;
   if (!MONGODB_URI) {
-    throw new Error("VITE_MONGODB_URL is not defined in environment variables");
+    throw new Error("MONGODB_URL is not defined in environment variables");
   }
 
   if (cached.conn) return cached.conn;
