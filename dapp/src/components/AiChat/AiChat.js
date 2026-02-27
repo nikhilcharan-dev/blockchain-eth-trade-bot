@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import { useCurrency } from "@/context/CurrencyContext";
 import "./AiChat.css";
@@ -40,6 +40,12 @@ export default function AiChat({ compact = false }) {
   const [settingsSaved, setSettingsSaved] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Sync state
+  const [syncEnabled, setSyncEnabled] = useState(false);
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [syncStatus, setSyncStatus] = useState(""); // "", "synced", "error"
+  const [isGuest, setIsGuest] = useState(true);
+
   // Custom model form
   const [newModelName, setNewModelName] = useState("");
   const [newModelId, setNewModelId] = useState("");
@@ -47,12 +53,101 @@ export default function AiChat({ compact = false }) {
   const chatEndRef = useRef(null);
   const { wazirxPrices } = useCurrency();
 
-  // Load settings on mount
+  // Check if logged-in user (not guest)
   useEffect(() => {
-    const s = loadSettings();
-    setSettings(s);
-    if (s.selectedModel) setSelectedModel(s.selectedModel);
+    try {
+      const id = JSON.parse(localStorage.getItem("id") || "{}");
+      setIsGuest(!id.username || id.username === "Guest");
+    } catch {
+      setIsGuest(true);
+    }
   }, []);
+
+  // Pull settings from cloud
+  const pullCloudSettings = useCallback(async () => {
+    try {
+      const resp = await fetch("/api/settings");
+      if (!resp.ok) return null;
+      const data = await resp.json();
+      return data;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  // Push settings to cloud
+  const pushCloudSettings = useCallback(async (s, model) => {
+    setSyncLoading(true);
+    try {
+      const resp = await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          awsAccessKeyId: s.awsAccessKeyId || "",
+          awsSecretAccessKey: s.awsSecretAccessKey || "",
+          awsRegion: s.awsRegion || "us-east-1",
+          selectedModel: model,
+          customModels: s.customModels || [],
+          modelOverrides: s.modelOverrides || {},
+          wazirxApiKey: localStorage.getItem("wazirx_api_key") || "",
+          wazirxApiSecret: localStorage.getItem("wazirx_api_secret") || "",
+          syncEnabled: true,
+        }),
+      });
+      if (resp.ok) {
+        setSyncStatus("synced");
+        setTimeout(() => setSyncStatus(""), 2000);
+      }
+    } catch {
+      setSyncStatus("error");
+      setTimeout(() => setSyncStatus(""), 3000);
+    } finally {
+      setSyncLoading(false);
+    }
+  }, []);
+
+  // Load settings on mount — try cloud first, then localStorage
+  useEffect(() => {
+    const localSettings = loadSettings();
+
+    if (isGuest) {
+      setSettings(localSettings);
+      if (localSettings.selectedModel) setSelectedModel(localSettings.selectedModel);
+      return;
+    }
+
+    // Try cloud settings
+    pullCloudSettings().then((cloud) => {
+      if (cloud?.syncEnabled && cloud.settings) {
+        const cs = cloud.settings;
+        setSyncEnabled(true);
+
+        // Merge cloud settings
+        const merged = {
+          awsAccessKeyId: cs.awsAccessKeyId || localSettings.awsAccessKeyId || "",
+          awsSecretAccessKey: cs.awsSecretAccessKey || localSettings.awsSecretAccessKey || "",
+          awsRegion: cs.awsRegion || localSettings.awsRegion || "us-east-1",
+          customModels: cs.customModels?.length > 0 ? cs.customModels : localSettings.customModels || [],
+          modelOverrides: cs.modelOverrides && Object.keys(cs.modelOverrides).length > 0
+            ? cs.modelOverrides
+            : localSettings.modelOverrides || {},
+        };
+
+        setSettings(merged);
+        saveSettings(merged);
+
+        if (cs.selectedModel) setSelectedModel(cs.selectedModel);
+        else if (localSettings.selectedModel) setSelectedModel(localSettings.selectedModel);
+
+        // Restore WazirX keys if synced
+        if (cs.wazirxApiKey) localStorage.setItem("wazirx_api_key", cs.wazirxApiKey);
+        if (cs.wazirxApiSecret) localStorage.setItem("wazirx_api_secret", cs.wazirxApiSecret);
+      } else {
+        setSettings(localSettings);
+        if (localSettings.selectedModel) setSelectedModel(localSettings.selectedModel);
+      }
+    });
+  }, [isGuest, pullCloudSettings]);
 
   // Fetch available built-in models
   useEffect(() => {
@@ -87,6 +182,54 @@ export default function AiChat({ compact = false }) {
     saveSettings({ ...settings, selectedModel });
     setSettingsSaved(true);
     setTimeout(() => setSettingsSaved(false), 2000);
+
+    // Push to cloud if sync is enabled
+    if (syncEnabled && !isGuest) {
+      pushCloudSettings(settings, selectedModel);
+    }
+  }
+
+  async function toggleSync() {
+    if (isGuest) return;
+
+    if (syncEnabled) {
+      // Disable sync
+      setSyncLoading(true);
+      try {
+        await fetch("/api/settings", { method: "DELETE" });
+        setSyncEnabled(false);
+        setSyncStatus("");
+      } catch {}
+      setSyncLoading(false);
+    } else {
+      // Enable sync — push current settings
+      setSyncEnabled(true);
+      await pushCloudSettings(settings, selectedModel);
+    }
+  }
+
+  async function pullFromCloud() {
+    if (isGuest) return;
+    setSyncLoading(true);
+    const cloud = await pullCloudSettings();
+    if (cloud?.settings) {
+      const cs = cloud.settings;
+      const merged = {
+        awsAccessKeyId: cs.awsAccessKeyId || "",
+        awsSecretAccessKey: cs.awsSecretAccessKey || "",
+        awsRegion: cs.awsRegion || "us-east-1",
+        customModels: cs.customModels || [],
+        modelOverrides: cs.modelOverrides || {},
+      };
+      setSettings(merged);
+      saveSettings(merged);
+      if (cs.selectedModel) setSelectedModel(cs.selectedModel);
+      if (cs.wazirxApiKey) localStorage.setItem("wazirx_api_key", cs.wazirxApiKey);
+      if (cs.wazirxApiSecret) localStorage.setItem("wazirx_api_secret", cs.wazirxApiSecret);
+      setSyncStatus("synced");
+      setTimeout(() => setSyncStatus(""), 2000);
+    }
+    setSyncLoading(false);
   }
 
   function addCustomModel() {
@@ -458,9 +601,59 @@ export default function AiChat({ compact = false }) {
         </div>
       )}
 
+      {/* Sync to Account */}
+      {!isGuest && (
+        <div className="ai-settings-section ai-sync-section">
+          <h4>Sync to Account</h4>
+          <p className="ai-settings-hint">
+            Save your settings (AWS keys, models, WazirX keys) to your account so you can access
+            them from any device.
+          </p>
+          <div className="ai-sync-toggle-row">
+            <span className="ai-sync-label">Cloud Sync</span>
+            <button
+              className={`ai-sync-toggle-btn ${syncEnabled ? "ai-sync-on" : ""}`}
+              onClick={toggleSync}
+              disabled={syncLoading}
+            >
+              <span className="ai-sync-toggle-knob" />
+            </button>
+            <span className="ai-sync-status-text">
+              {syncLoading ? "Syncing..." : syncEnabled ? "Enabled" : "Disabled"}
+            </span>
+          </div>
+          {syncEnabled && (
+            <div className="ai-sync-actions">
+              <button
+                className="ai-sync-action-btn"
+                onClick={() => pushCloudSettings(settings, selectedModel)}
+                disabled={syncLoading}
+              >
+                Push to Cloud
+              </button>
+              <button
+                className="ai-sync-action-btn ai-sync-pull-btn"
+                onClick={pullFromCloud}
+                disabled={syncLoading}
+              >
+                Pull from Cloud
+              </button>
+            </div>
+          )}
+          {syncStatus === "synced" && (
+            <span className="ai-sync-msg ai-sync-ok">Settings synced to your account</span>
+          )}
+          {syncStatus === "error" && (
+            <span className="ai-sync-msg ai-sync-err">Sync failed. Try again.</span>
+          )}
+        </div>
+      )}
+
       <p className="ai-settings-note">
-        Credentials are stored in your browser&apos;s localStorage and sent securely to the
-        Next.js server for Bedrock API calls. They are never stored on any external server.
+        Credentials are stored in your browser&apos;s localStorage.
+        {syncEnabled
+          ? " They are also securely synced to your account in the cloud."
+          : " Enable Cloud Sync to access settings from any device."}
       </p>
     </div>
   );
@@ -477,7 +670,7 @@ export default function AiChat({ compact = false }) {
             <div className="ai-sidebar-brand">
               <div className="ai-sidebar-logo">AI</div>
               <div>
-                <div className="ai-sidebar-title">CryptoDash AI</div>
+                <div className="ai-sidebar-title">CryptoDash Trade Bot</div>
                 <div className="ai-sidebar-subtitle">Powered by Bedrock</div>
               </div>
             </div>
@@ -541,7 +734,7 @@ export default function AiChat({ compact = false }) {
                 <line x1="6.5" y1="2" x2="6.5" y2="16" stroke="currentColor" strokeWidth="1.5" />
               </svg>
             </button>
-            <span className="ai-main-header-title">CryptoDash AI</span>
+            <span className="ai-main-header-title">CryptoDash Trade Bot</span>
             <div className="ai-main-header-controls">
               {modelSelector(true)}
               <button
@@ -557,7 +750,7 @@ export default function AiChat({ compact = false }) {
         {/* Compact header */}
         {compact && (
           <div className="ai-compact-header">
-            <span className="ai-compact-title">CryptoDash AI</span>
+            <span className="ai-compact-title">CryptoDash Trade Bot</span>
             <div className="ai-compact-controls">
               {modelSelector(true)}
               <button
@@ -628,7 +821,7 @@ export default function AiChat({ compact = false }) {
                     <div className="ai-message-body">
                       <div className="ai-message-meta">
                         <span className="ai-message-role">
-                          {m.role === "user" ? "You" : "CryptoDash AI"}
+                          {m.role === "user" ? "You" : "CryptoDash Trade Bot"}
                         </span>
                         {m.model && (
                           <span className="ai-message-model">{m.model}</span>
@@ -652,7 +845,7 @@ export default function AiChat({ compact = false }) {
                     <div className="ai-message-avatar">AI</div>
                     <div className="ai-message-body">
                       <div className="ai-message-meta">
-                        <span className="ai-message-role">CryptoDash AI</span>
+                        <span className="ai-message-role">CryptoDash Trade Bot</span>
                       </div>
                       <div className="ai-typing">
                         <span></span>
@@ -674,7 +867,7 @@ export default function AiChat({ compact = false }) {
                   className="ai-input"
                   placeholder={
                     hasCredentials
-                      ? "Message CryptoDash AI..."
+                      ? "Message CryptoDash Trade Bot..."
                       : "Configure AWS keys in Settings first..."
                   }
                   value={input}

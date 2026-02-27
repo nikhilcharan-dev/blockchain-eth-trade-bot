@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import gsap from 'gsap'
 import { CurrencyProvider, useCurrency } from "@/context/CurrencyContext"
@@ -54,13 +54,16 @@ function DashboardContent() {
       .finally(() => router.push("/"))
   }
 
+  const isGuest = username === 'Guest'
+
   const tabs = [
     { id: 'overview', label: 'Overview' },
     { id: 'trade', label: 'Trade' },
     { id: 'watchlist', label: 'Watchlist' },
     { id: 'markets', label: 'Markets' },
     { id: 'exchange', label: 'WazirX' },
-    { id: 'ai', label: 'AI Bot' },
+    { id: 'ai', label: 'Trade Bot' },
+    ...(!isGuest ? [{ id: 'account', label: 'Account' }] : []),
   ]
 
   return (
@@ -107,6 +110,10 @@ function DashboardContent() {
 
         {activeTab === 'ai' && (
           <AiChat />
+        )}
+
+        {activeTab === 'account' && !isGuest && (
+          <AccountPanel username={username} />
         )}
       </div>
 
@@ -155,6 +162,96 @@ const NavigationBar = ({ username, activeTab, tabs, onTabChange, onLogout }) => 
         </button>
       </div>
     </nav>
+  )
+}
+
+function AccountPanel({ username }) {
+  const [logins, setLogins] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  const fetchLogins = useCallback(async () => {
+    setLoading(true)
+    try {
+      const resp = await fetch("/api/auth/sessions")
+      if (resp.ok) {
+        const data = await resp.json()
+        setLogins(data.logins || [])
+      }
+    } catch {}
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { fetchLogins() }, [fetchLogins])
+
+  function parseBrowser(ua) {
+    if (!ua || ua === "Unknown") return "Unknown"
+    if (ua.includes("Chrome") && !ua.includes("Edg")) return "Chrome"
+    if (ua.includes("Edg")) return "Edge"
+    if (ua.includes("Firefox")) return "Firefox"
+    if (ua.includes("Safari") && !ua.includes("Chrome")) return "Safari"
+    if (ua.includes("Opera") || ua.includes("OPR")) return "Opera"
+    return ua.slice(0, 40)
+  }
+
+  function parseDevice(ua) {
+    if (!ua || ua === "Unknown") return ""
+    if (ua.includes("Mobile") || ua.includes("Android")) return "Mobile"
+    if (ua.includes("iPad") || ua.includes("Tablet")) return "Tablet"
+    if (ua.includes("Windows")) return "Windows"
+    if (ua.includes("Mac")) return "Mac"
+    if (ua.includes("Linux")) return "Linux"
+    return ""
+  }
+
+  return (
+    <div className="account-panel">
+      <div className="account-header">
+        <div className="account-avatar">
+          {username.charAt(0).toUpperCase()}
+        </div>
+        <div>
+          <h2 className="account-username">{username}</h2>
+          <span className="account-role">Registered User</span>
+        </div>
+      </div>
+
+      <div className="account-section">
+        <div className="account-section-header">
+          <h3>Login History</h3>
+          <button className="account-refresh-btn" onClick={fetchLogins} disabled={loading}>
+            {loading ? "Loading..." : "Refresh"}
+          </button>
+        </div>
+
+        {!loading && logins.length === 0 && (
+          <p className="account-empty">No login history yet. History will appear after your next login.</p>
+        )}
+
+        {logins.length > 0 && (
+          <div className="account-logins-list">
+            {logins.map((l, i) => (
+              <div key={i} className={`account-login-row ${i === 0 ? "account-login-current" : ""}`}>
+                <div className="account-login-info">
+                  <span className="account-login-browser">
+                    {parseBrowser(l.userAgent)}
+                  </span>
+                  {parseDevice(l.userAgent) && (
+                    <span className="account-login-device">{parseDevice(l.userAgent)}</span>
+                  )}
+                  {i === 0 && <span className="account-login-badge">Current</span>}
+                </div>
+                <div className="account-login-details">
+                  <span className="account-login-ip">{l.ip}</span>
+                  <span className="account-login-time">
+                    {new Date(l.at).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   )
 }
 

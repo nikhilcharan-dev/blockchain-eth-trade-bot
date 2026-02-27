@@ -57,7 +57,7 @@ const DEFAULT_MODELS = {
   },
 };
 
-const SYSTEM_PROMPT = `You are CryptoDash AI, a crypto market analyst assistant embedded in a trading dashboard.
+const SYSTEM_PROMPT = `You are CryptoDash Trade Bot, a crypto market analyst assistant embedded in a trading dashboard.
 You have access to real-time WazirX market data provided as context.
 
 Your capabilities:
@@ -98,7 +98,7 @@ export async function POST(request) {
       return Response.json(
         {
           error: "AWS credentials not configured",
-          hint: "Go to the AI Bot tab → Settings to add your AWS Access Key ID and Secret Access Key.",
+          hint: "Go to the Trade Bot tab → Settings to add your AWS Access Key ID and Secret Access Key.",
         },
         { status: 401 }
       );

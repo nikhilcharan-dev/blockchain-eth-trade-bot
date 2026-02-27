@@ -1310,6 +1310,121 @@
 }
 
 /* ============================================
+   SYNC TO ACCOUNT
+   ============================================ */
+.ai-sync-section {
+  border-color: rgba(0, 230, 118, 0.12);
+  background: rgba(0, 230, 118, 0.02);
+}
+
+.ai-sync-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.ai-sync-label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+}
+
+.ai-sync-toggle-btn {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  border: none;
+  background: rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  transition: background 0.25s;
+  padding: 0;
+}
+
+.ai-sync-toggle-btn.ai-sync-on {
+  background: #00c853;
+}
+
+.ai-sync-toggle-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.25s;
+  pointer-events: none;
+}
+
+.ai-sync-on .ai-sync-toggle-knob {
+  transform: translateX(20px);
+}
+
+.ai-sync-toggle-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ai-sync-status-text {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.ai-sync-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.ai-sync-action-btn {
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  color: #a5b4fc;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ai-sync-action-btn:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.18);
+}
+
+.ai-sync-action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ai-sync-pull-btn {
+  background: rgba(0, 230, 118, 0.08);
+  border-color: rgba(0, 230, 118, 0.2);
+  color: #69f0ae;
+}
+
+.ai-sync-pull-btn:hover:not(:disabled) {
+  background: rgba(0, 230, 118, 0.15);
+}
+
+.ai-sync-msg {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.ai-sync-ok {
+  color: #69f0ae;
+}
+
+.ai-sync-err {
+  color: #ff8a80;
+}
+
+/* ============================================
    FLOATING WIDGET WRAPPER
    ============================================ */
 .ai-widget-wrapper {
