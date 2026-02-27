@@ -326,3 +326,77 @@
   background: rgba(255, 213, 79, 0.12);
   color: #ffd54f;
 }
+
+@media (max-width: 768px) {
+  .exchange-connect {
+    padding: 12px;
+  }
+
+  .exchange-card {
+    padding: 16px;
+  }
+
+  .exchange-title {
+    font-size: 17px;
+  }
+
+  .exchange-tabs {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .exchange-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .exchange-tab {
+    font-size: 12px;
+    padding: 7px 12px;
+    white-space: nowrap;
+  }
+
+  .exchange-prices-card {
+    padding: 16px;
+  }
+
+  .exchange-price-table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .exchange-price-row {
+    min-width: 560px;
+    font-size: 12px;
+    padding: 10px 0;
+  }
+
+  .ep-col {
+    font-size: 12px;
+  }
+
+  .exchange-price-row-header .ep-col {
+    font-size: 9px;
+  }
+
+  .exchange-prices-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .exchange-connected-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .ep-col {
+    font-size: 11px;
+  }
+
+  .ep-pair {
+    display: none;
+  }
+}

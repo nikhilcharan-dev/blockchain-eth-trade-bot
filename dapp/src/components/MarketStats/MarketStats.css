@@ -134,3 +134,38 @@
   letter-spacing: 0.5px;
   vertical-align: middle;
 }
+
+@media (max-width: 768px) {
+  .market-stats {
+    padding: 0 12px;
+    margin: 12px auto;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .stat-card {
+    padding: 16px;
+  }
+
+  .stat-card-header {
+    font-size: 14px;
+    margin-bottom: 12px;
+  }
+
+  .fear-greed-gauge {
+    width: 120px;
+    height: 120px;
+  }
+
+  .fear-greed-inner {
+    width: 94px;
+    height: 94px;
+  }
+
+  .fear-greed-score {
+    font-size: 28px;
+  }
+}

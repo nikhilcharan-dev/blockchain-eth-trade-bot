@@ -238,3 +238,74 @@
 .multi-chart-input:focus {
   border-color: rgba(99, 102, 241, 0.5);
 }
+
+@media (max-width: 768px) {
+  .eth-chart {
+    flex-direction: column;
+    padding: 0 12px;
+    gap: 12px;
+  }
+
+  .eth-chart-container {
+    padding-top: 44px;
+  }
+
+  .eth-chart-container h2 {
+    font-size: 16px;
+  }
+
+  .eth-chart-sidebar {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-height: 300px;
+  }
+
+  .eth-chart-sidebar h3 {
+    font-size: 14px;
+  }
+
+  .multi-chart-wrapper {
+    padding: 16px;
+    margin: 20px auto 12px;
+  }
+
+  .multi-chart-header h2 {
+    font-size: 16px;
+  }
+
+  .multi-chart-controls {
+    gap: 8px;
+  }
+
+  .multi-chart-input {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .multi-chart-select {
+    font-size: 13px;
+    padding: 7px 10px;
+  }
+
+  .trade-table {
+    font-size: 11px;
+  }
+
+  .trade-cell {
+    padding: 6px 2px;
+  }
+}
+
+@media (max-width: 480px) {
+  .eth-chart {
+    padding: 0 8px;
+  }
+
+  .multi-chart-wrapper {
+    padding: 12px;
+  }
+
+  .multi-chart-controls {
+    flex-direction: column;
+  }
+}

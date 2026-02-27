@@ -146,3 +146,58 @@
   color: #ff5252;
   background: rgba(255, 82, 82, 0.1);
 }
+
+@media (max-width: 768px) {
+  .watchlist-container {
+    padding: 16px;
+    margin: 12px auto;
+  }
+
+  .watchlist-header h2 {
+    font-size: 16px;
+  }
+
+  .watchlist-add-btn {
+    font-size: 12px;
+    padding: 5px 12px;
+  }
+
+  .watchlist-row {
+    grid-template-columns: 1.4fr 1fr 0.9fr 0.4fr;
+    font-size: 12px;
+    padding: 10px 4px;
+  }
+
+  /* Hide high/low and volume columns on tablet */
+  .wl-col-hl,
+  .wl-col-vol {
+    display: none;
+  }
+
+  .wl-col {
+    font-size: 12px;
+  }
+
+  .watchlist-row-header .wl-col {
+    font-size: 9px;
+  }
+}
+
+@media (max-width: 480px) {
+  .watchlist-container {
+    padding: 12px;
+  }
+
+  .watchlist-row {
+    grid-template-columns: 1.5fr 1fr 0.8fr 0.3fr;
+    padding: 8px 2px;
+  }
+
+  .wl-col {
+    font-size: 11px;
+  }
+
+  .wl-pair {
+    display: none;
+  }
+}

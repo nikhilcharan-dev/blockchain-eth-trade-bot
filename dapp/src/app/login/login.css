@@ -194,3 +194,40 @@
   text-align: center;
   margin-top: 24px;
 }
+
+@media (max-width: 480px) {
+  .login-title {
+    font-size: 1.8rem;
+    margin-bottom: 20px;
+  }
+
+  .login-card {
+    max-width: 100%;
+    margin: 0 16px;
+    padding: 28px 20px;
+    border-radius: 16px;
+  }
+
+  .login-form {
+    gap: 14px;
+  }
+
+  .login-field input {
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+
+  .login-btn {
+    padding: 11px;
+    font-size: 14px;
+  }
+
+  .login-tabs {
+    margin-bottom: 16px;
+  }
+
+  .login-tab {
+    font-size: 13px;
+    padding: 8px;
+  }
+}

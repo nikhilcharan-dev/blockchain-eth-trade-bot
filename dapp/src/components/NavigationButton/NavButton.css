@@ -24,3 +24,10 @@
   border-color: rgba(99, 102, 241, 0.3);
   box-shadow: 0 4px 30px rgba(99, 102, 241, 0.15);
 }
+
+@media (max-width: 480px) {
+  .nav-button button {
+    padding: 10px 22px;
+    font-size: 13px;
+  }
+}
