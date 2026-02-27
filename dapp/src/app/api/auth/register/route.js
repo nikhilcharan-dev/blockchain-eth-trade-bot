@@ -1,8 +1,20 @@
 import { createUser } from "@/lib/users";
 import { signToken } from "@/lib/jwt";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 export async function POST(request) {
   try {
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      "unknown";
+    const limit = checkRateLimit(`register:${ip}`);
+    if (!limit.allowed) {
+      return Response.json(
+        { error: `Too many attempts. Try again in ${limit.retryAfter}s.` },
+        { status: 429 }
+      );
+    }
+
     const { username, password } = await request.json();
 
     if (!username?.trim() || !password?.trim()) {
@@ -12,16 +24,23 @@ export async function POST(request) {
       );
     }
 
-    if (username.trim().length < 3) {
+    if (username.trim().length < 3 || username.trim().length > 30) {
       return Response.json(
-        { error: "Username must be at least 3 characters" },
+        { error: "Username must be 3-30 characters" },
         { status: 400 }
       );
     }
 
-    if (password.trim().length < 4) {
+    if (!/^[a-zA-Z0-9_]+$/.test(username.trim())) {
       return Response.json(
-        { error: "Password must be at least 4 characters" },
+        { error: "Username can only contain letters, numbers, and underscores" },
+        { status: 400 }
+      );
+    }
+
+    if (password.length < 8 || password.length > 128) {
+      return Response.json(
+        { error: "Password must be 8-128 characters" },
         { status: 400 }
       );
     }
@@ -41,7 +60,7 @@ export async function POST(request) {
 
     response.headers.set(
       "Set-Cookie",
-      `auth_token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`
+      `auth_token=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${24 * 60 * 60}`
     );
 
     return response;

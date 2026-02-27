@@ -31,31 +31,59 @@ export default function ExchangeConnect() {
   // Active sub-tab within exchange
   const [activeSection, setActiveSection] = useState("prices");
 
-  // Check saved connection on mount
+  const [connectLoading, setConnectLoading] = useState(false);
+
+  // Check saved connection on mount by checking server-side credentials
   useEffect(() => {
-    const savedKey = localStorage.getItem("wazirx_api_key");
-    const savedSecret = localStorage.getItem("wazirx_api_secret");
-    if (savedKey && savedSecret) {
-      setApiConnected(true);
-    }
+    fetch("/api/settings")
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data?.settings?.hasWazirxCredentials) {
+          setApiConnected(true);
+        }
+      })
+      .catch(() => {});
   }, []);
 
-  // Connect API
-  const connectApi = () => {
+  // Connect API — save credentials to server
+  const connectApi = async () => {
     const key = apiKeyInput.trim();
     const secret = apiSecretInput.trim();
     if (!key || !secret) return;
 
-    localStorage.setItem("wazirx_api_key", key);
-    localStorage.setItem("wazirx_api_secret", secret);
-    setApiConnected(true);
-    setApiKeyInput("");
-    setApiSecretInput("");
+    setConnectLoading(true);
+    try {
+      const resp = await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          wazirxApiKey: key,
+          wazirxApiSecret: secret,
+          syncEnabled: true,
+        }),
+      });
+      if (resp.ok) {
+        setApiConnected(true);
+        setApiKeyInput("");
+        setApiSecretInput("");
+      } else {
+        setAccountError("Failed to save credentials");
+      }
+    } catch {
+      setAccountError("Failed to save credentials");
+    } finally {
+      setConnectLoading(false);
+    }
   };
 
-  const disconnectApi = () => {
-    localStorage.removeItem("wazirx_api_key");
-    localStorage.removeItem("wazirx_api_secret");
+  const disconnectApi = async () => {
+    try {
+      await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ wazirxApiKey: "", wazirxApiSecret: "" }),
+      });
+    } catch {}
     setApiConnected(false);
     setFunds(null);
     setOrders(null);
@@ -63,12 +91,7 @@ export default function ExchangeConnect() {
     setAccountError(null);
   };
 
-  // Fetch account data via server-side API routes
-  const getCredentials = () => ({
-    apiKey: localStorage.getItem("wazirx_api_key"),
-    apiSecret: localStorage.getItem("wazirx_api_secret"),
-  });
-
+  // Fetch account data via server-side API routes (credentials read server-side)
   const fetchFunds = useCallback(async () => {
     setAccountLoading(true);
     setAccountError(null);
@@ -76,7 +99,7 @@ export default function ExchangeConnect() {
       const resp = await fetch("/api/wazirx/funds", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(getCredentials()),
+        body: JSON.stringify({}),
       });
       const data = await resp.json();
       if (!resp.ok) throw new Error(data.error || "Failed to fetch funds");
@@ -95,7 +118,7 @@ export default function ExchangeConnect() {
       const resp = await fetch("/api/wazirx/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(getCredentials()),
+        body: JSON.stringify({}),
       });
       const data = await resp.json();
       if (!resp.ok) throw new Error(data.error || "Failed to fetch orders");
@@ -114,7 +137,7 @@ export default function ExchangeConnect() {
       const resp = await fetch("/api/wazirx/open-orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(getCredentials()),
+        body: JSON.stringify({}),
       });
       const data = await resp.json();
       if (!resp.ok) throw new Error(data.error || "Failed to fetch open orders");
@@ -179,12 +202,12 @@ export default function ExchangeConnect() {
                 onChange={(e) => setApiSecretInput(e.target.value)}
                 className="exchange-input"
               />
-              <button className="exchange-connect-btn" onClick={connectApi}>
-                Connect Account
+              <button className="exchange-connect-btn" onClick={connectApi} disabled={connectLoading}>
+                {connectLoading ? "Connecting..." : "Connect Account"}
               </button>
             </div>
             <p className="exchange-note">
-              Your credentials are stored locally in your browser and sent securely to the Next.js server for request signing. They are never stored on any external server.
+              Your credentials are encrypted and stored securely on the server. They are used server-side for request signing and never exposed to the browser.
             </p>
           </div>
         ) : (

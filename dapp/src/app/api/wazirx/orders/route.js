@@ -1,6 +1,8 @@
 import { createHmac } from "crypto";
+import { getWazirxCredentials } from "@/lib/wazirxAuth";
 
 const WAZIRX_BASE = "https://api.wazirx.com";
+const SYMBOL_REGEX = /^[a-zA-Z0-9]{2,20}$/;
 
 function signRequest(params, secret) {
   const queryString = new URLSearchParams(params).toString();
@@ -12,37 +14,37 @@ function signRequest(params, secret) {
 
 export async function POST(request) {
   try {
-    const { apiKey, apiSecret, symbol } = await request.json();
-
-    if (!apiKey || !apiSecret) {
-      return Response.json(
-        { error: "API key and secret are required" },
-        { status: 400 }
-      );
+    const creds = await getWazirxCredentials(request);
+    if (creds.error) {
+      return Response.json({ error: creds.error }, { status: creds.status });
     }
+
+    const body = await request.json();
 
     const params = {
       timestamp: Date.now(),
       recvWindow: 20000,
     };
 
-    if (symbol) {
-      params.symbol = symbol;
+    if (body.symbol) {
+      if (!SYMBOL_REGEX.test(body.symbol)) {
+        return Response.json({ error: "Invalid symbol format" }, { status: 400 });
+      }
+      params.symbol = body.symbol;
     }
 
-    const { queryString, signature } = signRequest(params, apiSecret);
+    const { queryString, signature } = signRequest(params, creds.apiSecret);
 
     const resp = await fetch(
       `${WAZIRX_BASE}/sapi/v1/allOrders?${queryString}&signature=${signature}`,
       {
-        headers: { "X-Api-Key": apiKey },
+        headers: { "X-Api-Key": creds.apiKey },
       }
     );
 
     if (!resp.ok) {
-      const errBody = await resp.text();
       return Response.json(
-        { error: `WazirX API error: ${resp.status}`, details: errBody },
+        { error: "Failed to fetch orders from WazirX" },
         { status: resp.status }
       );
     }
@@ -50,8 +52,9 @@ export async function POST(request) {
     const data = await resp.json();
     return Response.json(data);
   } catch (err) {
+    console.error("WazirX orders error:", err);
     return Response.json(
-      { error: "Failed to fetch orders", details: err.message },
+      { error: "Failed to fetch orders" },
       { status: 500 }
     );
   }

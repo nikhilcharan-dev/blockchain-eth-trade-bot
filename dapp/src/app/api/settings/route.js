@@ -1,17 +1,30 @@
 import { verifyToken } from "@/lib/jwt";
 import connectDB from "@/lib/mongodb";
 import UserSettings from "@/lib/models/UserSettings";
+import { encrypt, decrypt } from "@/lib/crypto";
 
-function getUsername(request) {
+const SENSITIVE_FIELDS = [
+  "awsAccessKeyId",
+  "awsSecretAccessKey",
+  "wazirxApiKey",
+  "wazirxApiSecret",
+];
+
+function mask(value) {
+  if (!value || value.length < 6) return value ? "****" : "";
+  return value.slice(0, 4) + "****" + value.slice(-2);
+}
+
+async function getAuthPayload(request) {
   const token = request.cookies.get("auth_token")?.value;
   if (!token) return null;
   return verifyToken(token);
 }
 
-// GET — fetch user settings
+// GET — fetch user settings (credentials are masked)
 export async function GET(request) {
   try {
-    const payload = await getUsername(request);
+    const payload = await getAuthPayload(request);
     if (!payload || !payload.username || payload.role === "guest") {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -28,14 +41,16 @@ export async function GET(request) {
     return Response.json({
       syncEnabled: settings.syncEnabled,
       settings: {
-        awsAccessKeyId: settings.awsAccessKeyId,
-        awsSecretAccessKey: settings.awsSecretAccessKey,
+        awsAccessKeyId: mask(decrypt(settings.awsAccessKeyId)),
+        awsSecretAccessKey: settings.awsSecretAccessKey ? "****" : "",
         awsRegion: settings.awsRegion,
         selectedModel: settings.selectedModel,
         customModels: settings.customModels,
         modelOverrides: Object.fromEntries(settings.modelOverrides || new Map()),
-        wazirxApiKey: settings.wazirxApiKey,
-        wazirxApiSecret: settings.wazirxApiSecret,
+        wazirxApiKey: mask(decrypt(settings.wazirxApiKey)),
+        wazirxApiSecret: settings.wazirxApiSecret ? "****" : "",
+        hasAwsCredentials: !!(settings.awsAccessKeyId && settings.awsSecretAccessKey),
+        hasWazirxCredentials: !!(settings.wazirxApiKey && settings.wazirxApiSecret),
       },
     });
   } catch (err) {
@@ -44,10 +59,10 @@ export async function GET(request) {
   }
 }
 
-// POST — save user settings
+// POST — save user settings (credentials are encrypted before storage)
 export async function POST(request) {
   try {
-    const payload = await getUsername(request);
+    const payload = await getAuthPayload(request);
     if (!payload || !payload.username || payload.role === "guest") {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -59,17 +74,18 @@ export async function POST(request) {
 
     const update = { syncEnabled: true };
 
-    // Only update fields that are provided
-    if (body.awsAccessKeyId !== undefined) update.awsAccessKeyId = body.awsAccessKeyId;
-    if (body.awsSecretAccessKey !== undefined) update.awsSecretAccessKey = body.awsSecretAccessKey;
+    // Encrypt sensitive fields before storing
+    for (const field of SENSITIVE_FIELDS) {
+      if (body[field] !== undefined && body[field] !== "" && !body[field].includes("****")) {
+        update[field] = encrypt(body[field]);
+      }
+    }
+
+    // Non-sensitive fields
     if (body.awsRegion !== undefined) update.awsRegion = body.awsRegion;
     if (body.selectedModel !== undefined) update.selectedModel = body.selectedModel;
     if (body.customModels !== undefined) update.customModels = body.customModels;
     if (body.modelOverrides !== undefined) update.modelOverrides = body.modelOverrides;
-    if (body.wazirxApiKey !== undefined) update.wazirxApiKey = body.wazirxApiKey;
-    if (body.wazirxApiSecret !== undefined) update.wazirxApiSecret = body.wazirxApiSecret;
-
-    // syncEnabled can be explicitly toggled
     if (body.syncEnabled !== undefined) update.syncEnabled = body.syncEnabled;
 
     const settings = await UserSettings.findOneAndUpdate(
@@ -91,7 +107,7 @@ export async function POST(request) {
 // DELETE — disable sync and remove cloud settings
 export async function DELETE(request) {
   try {
-    const payload = await getUsername(request);
+    const payload = await getAuthPayload(request);
     if (!payload || !payload.username || payload.role === "guest") {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }

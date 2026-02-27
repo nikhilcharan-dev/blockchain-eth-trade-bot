@@ -1,5 +1,8 @@
 import { verifyUser, recordLogin } from "@/lib/users";
 import { signToken } from "@/lib/jwt";
+import { checkRateLimit } from "@/lib/rateLimit";
+
+const COOKIE_OPTIONS = "Path=/; HttpOnly; Secure; SameSite=Strict";
 
 export async function POST(request) {
   try {
@@ -14,7 +17,7 @@ export async function POST(request) {
       });
       response.headers.set(
         "Set-Cookie",
-        `auth_token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${24 * 60 * 60}`
+        `auth_token=${token}; ${COOKIE_OPTIONS}; Max-Age=${24 * 60 * 60}`
       );
       return response;
     }
@@ -23,6 +26,18 @@ export async function POST(request) {
       return Response.json(
         { error: "Username and password are required" },
         { status: 400 }
+      );
+    }
+
+    // Rate limiting by IP + username
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      "unknown";
+    const limit = checkRateLimit(`login:${ip}:${username.trim().toLowerCase()}`);
+    if (!limit.allowed) {
+      return Response.json(
+        { error: `Too many login attempts. Try again in ${limit.retryAfter}s.` },
+        { status: 429 }
       );
     }
 
@@ -36,10 +51,6 @@ export async function POST(request) {
     }
 
     // Record login
-    const ip =
-      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      request.headers.get("x-real-ip") ||
-      "";
     const userAgent = request.headers.get("user-agent") || "";
     recordLogin(user.username, ip, userAgent).catch(() => {});
 
@@ -52,7 +63,7 @@ export async function POST(request) {
 
     response.headers.set(
       "Set-Cookie",
-      `auth_token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`
+      `auth_token=${token}; ${COOKIE_OPTIONS}; Max-Age=${24 * 60 * 60}`
     );
 
     return response;
@@ -67,7 +78,7 @@ export async function DELETE() {
   const response = Response.json({ message: "Logged out" });
   response.headers.set(
     "Set-Cookie",
-    "auth_token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0"
+    `auth_token=; ${COOKIE_OPTIONS}; Max-Age=0`
   );
   return response;
 }
