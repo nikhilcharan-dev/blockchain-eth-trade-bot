@@ -2,6 +2,10 @@ import {
   BedrockRuntimeClient,
   ConverseCommand,
 } from "@aws-sdk/client-bedrock-runtime";
+import { verifyToken } from "@/lib/jwt";
+import connectDB from "@/lib/mongodb";
+import UserSettings from "@/lib/models/UserSettings";
+import { decrypt } from "@/lib/crypto";
 
 // Built-in Bedrock model presets
 const DEFAULT_MODELS = {
@@ -57,6 +61,9 @@ const DEFAULT_MODELS = {
   },
 };
 
+// Valid model ID format: alphanumeric, dots, hyphens, colons
+const MODEL_ID_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9.\-:]{2,100}$/;
+
 const SYSTEM_PROMPT = `You are CryptoDash Trade Bot, a crypto market analyst assistant embedded in a trading dashboard.
 You have access to real-time WazirX market data provided as context.
 
@@ -74,13 +81,24 @@ Rules:
 - If asked about a token not in the data, say so
 - When giving predictions, clearly state confidence levels and risks`;
 
+async function getAuthPayload(request) {
+  const token = request.cookies.get("auth_token")?.value;
+  if (!token) return null;
+  return verifyToken(token);
+}
+
 export async function POST(request) {
   try {
+    // Auth check
+    const payload = await getAuthPayload(request);
+    if (!payload || !payload.username) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const {
       messages,
       model: modelKey,
       marketContext,
-      credentials,
       customModels,
       modelOverrides,
     } = await request.json();
@@ -89,10 +107,25 @@ export async function POST(request) {
       return Response.json({ error: "Messages are required" }, { status: 400 });
     }
 
-    // Credentials from request body or env vars
-    const accessKeyId = credentials?.awsAccessKeyId || process.env.AWS_ACCESS_KEY_ID;
-    const secretAccessKey = credentials?.awsSecretAccessKey || process.env.AWS_SECRET_ACCESS_KEY;
-    const region = credentials?.awsRegion || process.env.AWS_REGION || "us-east-1";
+    // Get credentials from server-side storage, with env var fallback
+    let accessKeyId = process.env.AWS_ACCESS_KEY_ID;
+    let secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+    let region = process.env.AWS_REGION || "us-east-1";
+
+    if (payload.role !== "guest") {
+      await connectDB();
+      const userSettings = await UserSettings.findOne({
+        username: payload.username.toLowerCase(),
+      });
+
+      if (userSettings) {
+        const decryptedKeyId = decrypt(userSettings.awsAccessKeyId);
+        const decryptedSecret = decrypt(userSettings.awsSecretAccessKey);
+        if (decryptedKeyId) accessKeyId = decryptedKeyId;
+        if (decryptedSecret) secretAccessKey = decryptedSecret;
+        if (userSettings.awsRegion) region = userSettings.awsRegion;
+      }
+    }
 
     if (!accessKeyId || !secretAccessKey) {
       return Response.json(
@@ -108,37 +141,38 @@ export async function POST(request) {
     let modelId;
     let modelLabel;
 
-    // Check if it's a user-added custom model
     if (customModels && Array.isArray(customModels)) {
       const custom = customModels.find((m) => m.key === modelKey);
-      if (custom) {
+      if (custom && MODEL_ID_REGEX.test(custom.id)) {
         modelId = custom.id;
         modelLabel = custom.label;
       }
     }
 
-    // Fall back to built-in presets (with possible user override)
     if (!modelId) {
       const preset = DEFAULT_MODELS[modelKey];
       if (preset) {
-        // Use overridden model ID if provided, otherwise default
-        modelId =
-          (modelOverrides && modelOverrides[modelKey]) || preset.id;
+        const override = modelOverrides && modelOverrides[modelKey];
+        if (override && MODEL_ID_REGEX.test(override)) {
+          modelId = override;
+        } else {
+          modelId = preset.id;
+        }
         modelLabel = preset.label;
       } else {
-        // Last resort — use the key as a raw model ID
-        modelId = modelKey;
-        modelLabel = modelKey;
+        // Reject unknown model keys instead of passing through
+        return Response.json(
+          { error: "Invalid model selection" },
+          { status: 400 }
+        );
       }
     }
 
-    // Create client per request
     const client = new BedrockRuntimeClient({
       region,
       credentials: { accessKeyId, secretAccessKey },
     });
 
-    // Build system prompt with live market data
     let systemText = SYSTEM_PROMPT;
     if (marketContext) {
       systemText += `\n\nCurrent WazirX Market Data (INR):\n${marketContext}`;
@@ -146,7 +180,7 @@ export async function POST(request) {
 
     const converseMessages = messages.map((m) => ({
       role: m.role === "user" ? "user" : "assistant",
-      content: [{ text: m.content }],
+      content: [{ text: String(m.content || "").slice(0, 10000) }],
     }));
 
     const command = new ConverseCommand({
@@ -174,17 +208,20 @@ export async function POST(request) {
     console.error("Bedrock API error:", err);
 
     let hint;
+    let status = 500;
+
     if (err.name === "AccessDeniedException" || err.name === "UnrecognizedClientException") {
-      hint = "Invalid AWS credentials or you don't have access to this Bedrock model. Check your keys and enable model access in the AWS Bedrock console.";
+      hint = "Check your AWS credentials and ensure model access is enabled in the Bedrock console.";
+      status = 403;
     } else if (err.name === "ValidationException") {
-      hint = "The selected model ID may be invalid or not available in your region. Check the model ID and ensure it's enabled in Bedrock → Model Access.";
+      hint = "The selected model may be unavailable in your region. Try a different model or region.";
     } else if (err.name === "ResourceNotFoundException") {
-      hint = "This model is not available in your selected region. Try switching to us-east-1 (most models available there).";
+      hint = "This model is not available in your selected region. Try switching to us-east-1.";
     }
 
     return Response.json(
-      { error: "AI request failed", details: err.message, hint },
-      { status: err.name === "AccessDeniedException" ? 403 : 500 }
+      { error: "AI request failed", hint },
+      { status }
     );
   }
 }

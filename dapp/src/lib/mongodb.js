@@ -1,11 +1,5 @@
 import mongoose from "mongoose";
 
-const MONGODB_URI = process.env.VITE_MONGODB_URL;
-
-if (!MONGODB_URI) {
-  throw new Error("VITE_MONGODB_URL is not defined in environment variables");
-}
-
 let cached = global._mongooseCache;
 
 if (!cached) {
@@ -13,6 +7,11 @@ if (!cached) {
 }
 
 export default async function connectDB() {
+  const MONGODB_URI = process.env.MONGODB_URL;
+  if (!MONGODB_URI) {
+    throw new Error("MONGODB_URL is not defined in environment variables");
+  }
+
   if (cached.conn) return cached.conn;
 
   if (!cached.promise) {

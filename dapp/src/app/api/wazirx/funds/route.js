@@ -1,4 +1,5 @@
 import { createHmac } from "crypto";
+import { getWazirxCredentials } from "@/lib/wazirxAuth";
 
 const WAZIRX_BASE = "https://api.wazirx.com";
 
@@ -12,13 +13,9 @@ function signRequest(params, secret) {
 
 export async function POST(request) {
   try {
-    const { apiKey, apiSecret } = await request.json();
-
-    if (!apiKey || !apiSecret) {
-      return Response.json(
-        { error: "API key and secret are required" },
-        { status: 400 }
-      );
+    const creds = await getWazirxCredentials(request);
+    if (creds.error) {
+      return Response.json({ error: creds.error }, { status: creds.status });
     }
 
     const params = {
@@ -26,19 +23,18 @@ export async function POST(request) {
       recvWindow: 20000,
     };
 
-    const { queryString, signature } = signRequest(params, apiSecret);
+    const { queryString, signature } = signRequest(params, creds.apiSecret);
 
     const resp = await fetch(
       `${WAZIRX_BASE}/sapi/v1/funds?${queryString}&signature=${signature}`,
       {
-        headers: { "X-Api-Key": apiKey },
+        headers: { "X-Api-Key": creds.apiKey },
       }
     );
 
     if (!resp.ok) {
-      const errBody = await resp.text();
       return Response.json(
-        { error: `WazirX API error: ${resp.status}`, details: errBody },
+        { error: "Failed to fetch funds from WazirX" },
         { status: resp.status }
       );
     }
@@ -46,8 +42,9 @@ export async function POST(request) {
     const data = await resp.json();
     return Response.json(data);
   } catch (err) {
+    console.error("WazirX funds error:", err);
     return Response.json(
-      { error: "Failed to fetch funds", details: err.message },
+      { error: "Failed to fetch funds" },
       { status: 500 }
     );
   }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { useCurrency } from "@/context/CurrencyContext";
 import "./AiChat.css";
 
@@ -89,8 +90,6 @@ export default function AiChat({ compact = false }) {
           selectedModel: model,
           customModels: s.customModels || [],
           modelOverrides: s.modelOverrides || {},
-          wazirxApiKey: localStorage.getItem("wazirx_api_key") || "",
-          wazirxApiSecret: localStorage.getItem("wazirx_api_secret") || "",
           syncEnabled: true,
         }),
       });
@@ -139,9 +138,7 @@ export default function AiChat({ compact = false }) {
         if (cs.selectedModel) setSelectedModel(cs.selectedModel);
         else if (localSettings.selectedModel) setSelectedModel(localSettings.selectedModel);
 
-        // Restore WazirX keys if synced
-        if (cs.wazirxApiKey) localStorage.setItem("wazirx_api_key", cs.wazirxApiKey);
-        if (cs.wazirxApiSecret) localStorage.setItem("wazirx_api_secret", cs.wazirxApiSecret);
+        // WazirX keys are stored server-side only
       } else {
         setSettings(localSettings);
         if (localSettings.selectedModel) setSelectedModel(localSettings.selectedModel);
@@ -224,8 +221,6 @@ export default function AiChat({ compact = false }) {
       setSettings(merged);
       saveSettings(merged);
       if (cs.selectedModel) setSelectedModel(cs.selectedModel);
-      if (cs.wazirxApiKey) localStorage.setItem("wazirx_api_key", cs.wazirxApiKey);
-      if (cs.wazirxApiSecret) localStorage.setItem("wazirx_api_secret", cs.wazirxApiSecret);
       setSyncStatus("synced");
       setTimeout(() => setSyncStatus(""), 2000);
     }
@@ -324,11 +319,6 @@ export default function AiChat({ compact = false }) {
           messages: newMessages,
           model: selectedModel,
           marketContext: buildMarketContext(),
-          credentials: {
-            awsAccessKeyId: settings.awsAccessKeyId,
-            awsSecretAccessKey: settings.awsSecretAccessKey,
-            awsRegion: settings.awsRegion || "us-east-1",
-          },
           customModels,
           modelOverrides,
         }),
@@ -650,10 +640,8 @@ export default function AiChat({ compact = false }) {
       )}
 
       <p className="ai-settings-note">
-        Credentials are stored in your browser&apos;s localStorage.
-        {syncEnabled
-          ? " They are also securely synced to your account in the cloud."
-          : " Enable Cloud Sync to access settings from any device."}
+        Credentials are encrypted and stored securely on the server when Cloud Sync is enabled.
+        {!syncEnabled && " Enable Cloud Sync to save and access settings from any device."}
       </p>
     </div>
   );
@@ -829,7 +817,7 @@ export default function AiChat({ compact = false }) {
                       </div>
                       <div className="ai-message-content">
                         {m.role === "assistant" && !m.isError ? (
-                          <ReactMarkdown>{m.content}</ReactMarkdown>
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
                         ) : (
                           m.content
                         )}
