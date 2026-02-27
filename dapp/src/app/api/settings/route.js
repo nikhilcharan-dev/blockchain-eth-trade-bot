@@ -57,7 +57,7 @@ export async function GET(request) {
     console.error("Settings GET error:", err);
     if (err.message?.includes("CREDENTIALS_ENCRYPTION_KEY")) {
       return Response.json(
-        { error: "Server misconfiguration: encryption key not set" },
+        { error: err.message },
         { status: 503 }
       );
     }
@@ -108,7 +108,7 @@ export async function POST(request) {
     console.error("Settings POST error:", err);
     if (err.message?.includes("CREDENTIALS_ENCRYPTION_KEY")) {
       return Response.json(
-        { error: "Server misconfiguration: encryption key not set" },
+        { error: err.message },
         { status: 503 }
       );
     }
