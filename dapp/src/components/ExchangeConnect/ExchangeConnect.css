@@ -1,0 +1,249 @@
+.exchange-connect {
+  padding: 20px;
+  max-width: 90svw;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.exchange-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 24px;
+  backdrop-filter: blur(12px);
+}
+
+.exchange-header {
+  margin-bottom: 16px;
+}
+
+.exchange-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.exchange-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.exchange-status {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-connected {
+  background: rgba(0, 230, 118, 0.12);
+  color: #00e676;
+  border: 1px solid rgba(0, 230, 118, 0.3);
+}
+
+.status-disconnected {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.exchange-subtitle {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.exchange-connect-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.exchange-info {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1.5;
+}
+
+.exchange-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.exchange-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.exchange-input:focus {
+  border-color: rgba(99, 102, 241, 0.5);
+}
+
+.exchange-connect-btn {
+  background: #6366f1;
+  color: #fff;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.exchange-connect-btn:hover {
+  background: #4f46e5;
+}
+
+.exchange-note {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.exchange-connected-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.exchange-connected-text {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.exchange-disconnect-btn {
+  background: rgba(255, 82, 82, 0.1);
+  color: #ff5252;
+  border: 1px solid rgba(255, 82, 82, 0.2);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.exchange-disconnect-btn:hover {
+  background: rgba(255, 82, 82, 0.2);
+}
+
+/* Prices Table */
+.exchange-prices-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 24px;
+  backdrop-filter: blur(12px);
+}
+
+.exchange-prices-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.exchange-prices-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.exchange-last-updated {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.exchange-error {
+  background: rgba(255, 82, 82, 0.08);
+  border: 1px solid rgba(255, 82, 82, 0.15);
+  color: #ff8a80;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.exchange-loading {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.4);
+  padding: 40px;
+  font-size: 14px;
+}
+
+.exchange-price-table {
+  width: 100%;
+}
+
+.exchange-price-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1.2fr 1fr 1.5fr 1fr 1.5fr;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background 0.15s;
+}
+
+.exchange-price-row:hover:not(.exchange-price-row-header) {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.exchange-price-row-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 10px;
+  margin-bottom: 4px;
+}
+
+.exchange-price-row-header .ep-col {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.35);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ep-col {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+  font-variant-numeric: tabular-nums;
+}
+
+.ep-col-name strong {
+  color: #fff;
+  font-size: 14px;
+}
+
+.ep-pair {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.3);
+  margin-left: 2px;
+}
+
+.ep-change-up {
+  color: #00e676;
+}
+
+.ep-change-down {
+  color: #ff5252;
+}
+
+.ep-col-hl,
+.ep-col-spread {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}

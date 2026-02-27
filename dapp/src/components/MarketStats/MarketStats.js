@@ -36,32 +36,28 @@ export default function MarketStats() {
     return () => ws.close();
   }, []);
 
-  // Simulated fear & greed based on BTC 24h change
+  // Fetch real Fear & Greed Index from alternative.me API
   useEffect(() => {
-    const btc = stats.BTC;
-    if (!btc) return;
+    async function fetchFearGreed() {
+      try {
+        const resp = await fetch("https://api.alternative.me/fng/?limit=1");
+        const json = await resp.json();
+        if (json?.data?.[0]) {
+          const entry = json.data[0];
+          setFearGreed({
+            score: parseInt(entry.value, 10),
+            label: entry.value_classification,
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching Fear & Greed Index", err);
+      }
+    }
 
-    const change = btc.change;
-    let score;
-    if (change > 5) score = 85;
-    else if (change > 2) score = 72;
-    else if (change > 0) score = 55;
-    else if (change > -2) score = 40;
-    else if (change > -5) score = 25;
-    else score = 15;
-
-    const jitter = Math.floor(Math.random() * 6) - 3;
-    score = Math.max(0, Math.min(100, score + jitter));
-
-    let label;
-    if (score >= 75) label = "Extreme Greed";
-    else if (score >= 55) label = "Greed";
-    else if (score >= 45) label = "Neutral";
-    else if (score >= 25) label = "Fear";
-    else label = "Extreme Fear";
-
-    setFearGreed({ score, label });
-  }, [stats.BTC?.change]);
+    fetchFearGreed();
+    const interval = setInterval(fetchFearGreed, 5 * 60 * 1000); // refresh every 5 min
+    return () => clearInterval(interval);
+  }, []);
 
   const formatVol = (vol) => {
     if (!vol) return "---";
@@ -150,9 +146,12 @@ export default function MarketStats() {
           </div>
         </div>
 
-        {/* Fear & Greed Index */}
+        {/* Fear & Greed Index — Real data from alternative.me */}
         <div className="stat-card fear-greed-card">
-          <div className="stat-card-header">Market Sentiment</div>
+          <div className="stat-card-header">
+            Market Sentiment
+            <span className="data-source-badge">Live</span>
+          </div>
           {fearGreed ? (
             <div className="fear-greed-display">
               <div

@@ -15,7 +15,7 @@
 }
 
 .portfolio-total {
-  min-width: 260px;
+  min-width: 280px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -49,6 +49,73 @@
   color: #ff5252;
 }
 
+.portfolio-add-btn {
+  margin-top: 8px;
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.portfolio-add-btn:hover {
+  background: rgba(99, 102, 241, 0.25);
+}
+
+.portfolio-add-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.portfolio-select,
+.portfolio-input {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  outline: none;
+}
+
+.portfolio-select option {
+  background: #1a1a2e;
+  color: #fff;
+}
+
+.portfolio-select:focus,
+.portfolio-input:focus {
+  border-color: rgba(99, 102, 241, 0.5);
+}
+
+.portfolio-confirm-btn {
+  background: #6366f1;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.portfolio-confirm-btn:hover {
+  background: #4f46e5;
+}
+
+.portfolio-empty {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.35);
+  margin-top: 4px;
+}
+
 .portfolio-holdings {
   flex: 1;
   display: grid;
@@ -80,6 +147,29 @@
   font-weight: 700;
   font-size: 15px;
   color: rgba(255, 255, 255, 0.9);
+}
+
+.holding-remove-btn {
+  background: rgba(255, 82, 82, 0.1);
+  color: #ff5252;
+  border: 1px solid rgba(255, 82, 82, 0.2);
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.holding-remove-btn:hover {
+  background: rgba(255, 82, 82, 0.25);
+}
+
+.holding-amount-row {
+  margin-bottom: 4px;
 }
 
 .holding-amount {
