@@ -300,6 +300,13 @@
   color: rgba(255, 255, 255, 0.4);
 }
 
+.holding-rate {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  margin-bottom: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
 .holding-value {
   font-size: 18px;
   font-weight: 600;

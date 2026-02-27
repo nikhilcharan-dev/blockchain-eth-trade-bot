@@ -39,7 +39,7 @@ export default function PortfolioSummary() {
   const [walletTotalValue, setWalletTotalValue] = useState(0);
   const [walletChange24h, setWalletChange24h] = useState(0);
 
-  const { wazirxPrices, formatValue } = useCurrency();
+  const { wazirxPrices, formatValue, formatPrice } = useCurrency();
 
   // Check WazirX connection on mount
   useEffect(() => {
@@ -264,6 +264,11 @@ export default function PortfolioSummary() {
                       <div className="holding-amount-row">
                         <span className="holding-amount">{h.amount} {h.symbol}</span>
                       </div>
+                      {p && (
+                        <div className="holding-rate">
+                          @ {formatPrice(p.priceInr)}/{h.symbol}
+                        </div>
+                      )}
                       <div className="holding-value">
                         {formatValue(valInr)}
                       </div>
@@ -365,6 +370,11 @@ export default function PortfolioSummary() {
                     <div className="holding-amount-row">
                       <span className="holding-amount">{h.amount} {h.symbol}</span>
                     </div>
+                    {p && (
+                      <div className="holding-rate">
+                        @ {formatPrice(p.priceInr)}/{h.symbol}
+                      </div>
+                    )}
                     <div className="holding-value">
                       {formatValue(valInr)}
                     </div>
