@@ -62,7 +62,7 @@ function DashboardContent() {
     { id: 'watchlist', label: 'Watchlist' },
     { id: 'markets', label: 'Markets' },
     { id: 'exchange', label: 'WazirX' },
-    { id: 'ai', label: 'AI Bot' },
+    { id: 'ai', label: 'Trade Bot' },
     ...(!isGuest ? [{ id: 'account', label: 'Account' }] : []),
   ]
 

@@ -670,7 +670,7 @@ export default function AiChat({ compact = false }) {
             <div className="ai-sidebar-brand">
               <div className="ai-sidebar-logo">AI</div>
               <div>
-                <div className="ai-sidebar-title">CryptoDash AI</div>
+                <div className="ai-sidebar-title">CryptoDash Trade Bot</div>
                 <div className="ai-sidebar-subtitle">Powered by Bedrock</div>
               </div>
             </div>
@@ -734,7 +734,7 @@ export default function AiChat({ compact = false }) {
                 <line x1="6.5" y1="2" x2="6.5" y2="16" stroke="currentColor" strokeWidth="1.5" />
               </svg>
             </button>
-            <span className="ai-main-header-title">CryptoDash AI</span>
+            <span className="ai-main-header-title">CryptoDash Trade Bot</span>
             <div className="ai-main-header-controls">
               {modelSelector(true)}
               <button
@@ -750,7 +750,7 @@ export default function AiChat({ compact = false }) {
         {/* Compact header */}
         {compact && (
           <div className="ai-compact-header">
-            <span className="ai-compact-title">CryptoDash AI</span>
+            <span className="ai-compact-title">CryptoDash Trade Bot</span>
             <div className="ai-compact-controls">
               {modelSelector(true)}
               <button
@@ -821,7 +821,7 @@ export default function AiChat({ compact = false }) {
                     <div className="ai-message-body">
                       <div className="ai-message-meta">
                         <span className="ai-message-role">
-                          {m.role === "user" ? "You" : "CryptoDash AI"}
+                          {m.role === "user" ? "You" : "CryptoDash Trade Bot"}
                         </span>
                         {m.model && (
                           <span className="ai-message-model">{m.model}</span>
@@ -845,7 +845,7 @@ export default function AiChat({ compact = false }) {
                     <div className="ai-message-avatar">AI</div>
                     <div className="ai-message-body">
                       <div className="ai-message-meta">
-                        <span className="ai-message-role">CryptoDash AI</span>
+                        <span className="ai-message-role">CryptoDash Trade Bot</span>
                       </div>
                       <div className="ai-typing">
                         <span></span>
@@ -867,7 +867,7 @@ export default function AiChat({ compact = false }) {
                   className="ai-input"
                   placeholder={
                     hasCredentials
-                      ? "Message CryptoDash AI..."
+                      ? "Message CryptoDash Trade Bot..."
                       : "Configure AWS keys in Settings first..."
                   }
                   value={input}
