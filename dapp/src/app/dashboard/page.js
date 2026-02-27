@@ -49,7 +49,9 @@ function DashboardContent() {
 
   const handleLogout = () => {
     localStorage.removeItem("id")
-    router.push("/")
+    fetch("/api/auth/login", { method: "DELETE" })
+      .catch(() => {})
+      .finally(() => router.push("/"))
   }
 
   const tabs = [

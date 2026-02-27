@@ -82,6 +82,7 @@ export async function POST(request) {
       marketContext,
       credentials,
       customModels,
+      modelOverrides,
     } = await request.json();
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -116,11 +117,13 @@ export async function POST(request) {
       }
     }
 
-    // Fall back to built-in presets
+    // Fall back to built-in presets (with possible user override)
     if (!modelId) {
       const preset = DEFAULT_MODELS[modelKey];
       if (preset) {
-        modelId = preset.id;
+        // Use overridden model ID if provided, otherwise default
+        modelId =
+          (modelOverrides && modelOverrides[modelKey]) || preset.id;
         modelLabel = preset.label;
       } else {
         // Last resort — use the key as a raw model ID
