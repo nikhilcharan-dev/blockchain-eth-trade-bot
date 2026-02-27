@@ -1,72 +1,25 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCurrency } from "@/context/CurrencyContext";
 import "./PriceTicker.css";
 
-const TOKENS = [
-  { symbol: "BTC", pair: "btcusdt" },
-  { symbol: "ETH", pair: "ethusdt" },
-  { symbol: "SOL", pair: "solusdt" },
-  { symbol: "XRP", pair: "xrpusdt" },
-  { symbol: "BNB", pair: "bnbusdt" },
-  { symbol: "ADA", pair: "adausdt" },
-  { symbol: "DOGE", pair: "dogeusdt" },
-  { symbol: "AVAX", pair: "avaxusdt" },
-];
+const TOKENS = ["BTC", "ETH", "SOL", "XRP", "BNB", "ADA", "DOGE", "AVAX"];
 
 export default function PriceTicker() {
-  const [prices, setPrices] = useState({});
-  const [prevPrices, setPrevPrices] = useState({});
-  const wsRefs = useRef({});
-
-  useEffect(() => {
-    const streams = TOKENS.map((t) => `${t.pair}@miniTicker`).join("/");
-    const ws = new WebSocket(
-      `wss://stream.binance.com:9443/stream?streams=${streams}`
-    );
-
-    ws.onmessage = (msg) => {
-      const { data } = JSON.parse(msg.data);
-      if (!data) return;
-
-      const symbol = data.s?.replace("USDT", "");
-      if (!symbol) return;
-
-      const price = parseFloat(data.c);
-      const change = parseFloat(data.P);
-
-      setPrevPrices((prev) => ({
-        ...prev,
-        [symbol]: prev[symbol] !== undefined ? prices[symbol]?.price : price,
-      }));
-
-      setPrices((prev) => ({
-        ...prev,
-        [symbol]: { price, change },
-      }));
-    };
-
-    return () => ws.close();
-  }, []);
-
-  const formatPrice = (price) => {
-    if (price >= 1000) return price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    if (price >= 1) return price.toFixed(4);
-    return price.toFixed(6);
-  };
+  const { wazirxPrices, formatPrice, pairLabel } = useCurrency();
 
   return (
     <div className="ticker-wrapper">
       <div className="ticker-track">
-        {[...TOKENS, ...TOKENS].map((t, i) => {
-          const data = prices[t.symbol];
+        {[...TOKENS, ...TOKENS].map((symbol, i) => {
+          const data = wazirxPrices[symbol];
           const changeClass = data?.change >= 0 ? "ticker-up" : "ticker-down";
 
           return (
-            <div key={`${t.symbol}-${i}`} className="ticker-item">
-              <span className="ticker-symbol">{t.symbol}</span>
+            <div key={`${symbol}-${i}`} className="ticker-item">
+              <span className="ticker-symbol">{symbol}</span>
               <span className="ticker-price">
-                ${data ? formatPrice(data.price) : "---"}
+                {data ? formatPrice(data.priceInr) : "---"}
               </span>
               {data && (
                 <span className={`ticker-change ${changeClass}`}>

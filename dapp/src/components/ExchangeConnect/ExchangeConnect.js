@@ -1,34 +1,20 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useCurrency } from "@/context/CurrencyContext";
 import "./ExchangeConnect.css";
 
-const WAZIRX_TICKERS_URL = "https://api.wazirx.com/sapi/v1/tickers/24hr";
-
-const SUPPORTED_PAIRS = [
-  { symbol: "BTC", pair: "btcinr" },
-  { symbol: "ETH", pair: "ethinr" },
-  { symbol: "SOL", pair: "solinr" },
-  { symbol: "XRP", pair: "xrpinr" },
-  { symbol: "BNB", pair: "bnbinr" },
-  { symbol: "ADA", pair: "adainr" },
-  { symbol: "DOGE", pair: "dogeinr" },
-  { symbol: "DOT", pair: "dotinr" },
-  { symbol: "AVAX", pair: "avaxinr" },
-  { symbol: "TRX", pair: "trxinr" },
-  { symbol: "LINK", pair: "linkinr" },
-  { symbol: "MATIC", pair: "maticinr" },
-  { symbol: "SHIB", pair: "shibinr" },
-  { symbol: "LTC", pair: "ltcinr" },
-  { symbol: "UNI", pair: "uniinr" },
+const SUPPORTED_SYMBOLS = [
+  "BTC", "ETH", "SOL", "XRP", "BNB", "ADA", "DOGE", "DOT",
+  "AVAX", "TRX", "LINK", "MATIC", "SHIB", "LTC", "UNI",
 ];
 
 export default function ExchangeConnect() {
-  // Market data
-  const [wazirxData, setWazirxData] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [lastUpdated, setLastUpdated] = useState(null);
+  // Use shared context for prices and formatting
+  const {
+    wazirxPrices, loading, lastUpdated,
+    formatPrice, formatVolume, pairLabel, currency,
+  } = useCurrency();
 
   // Connection state
   const [apiKeyInput, setApiKeyInput] = useState("");
@@ -53,52 +39,6 @@ export default function ExchangeConnect() {
       setApiConnected(true);
     }
   }, []);
-
-  // Fetch public market data
-  const fetchWazirxPrices = useCallback(async () => {
-    try {
-      setError(null);
-      const resp = await fetch(WAZIRX_TICKERS_URL);
-      if (!resp.ok) throw new Error(`WazirX API error: ${resp.status}`);
-
-      const data = await resp.json();
-      const pairMap = {};
-      for (const ticker of data) {
-        pairMap[ticker.symbol] = ticker;
-      }
-
-      const prices = {};
-      for (const { symbol, pair } of SUPPORTED_PAIRS) {
-        const ticker = pairMap[pair];
-        if (ticker) {
-          prices[symbol] = {
-            price: parseFloat(ticker.lastPrice),
-            high: parseFloat(ticker.highPrice),
-            low: parseFloat(ticker.lowPrice),
-            volume: parseFloat(ticker.volume),
-            quoteVolume: parseFloat(ticker.quoteVolume),
-            change: parseFloat(ticker.priceChangePercent),
-            bidPrice: parseFloat(ticker.bidPrice),
-            askPrice: parseFloat(ticker.askPrice),
-          };
-        }
-      }
-
-      setWazirxData(prices);
-      setLastUpdated(new Date());
-      setLoading(false);
-    } catch (err) {
-      console.error("WazirX fetch error:", err);
-      setError("Unable to fetch WazirX data. The API may be temporarily unavailable.");
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchWazirxPrices();
-    const interval = setInterval(fetchWazirxPrices, 10000);
-    return () => clearInterval(interval);
-  }, [fetchWazirxPrices]);
 
   // Connect API
   const connectApi = () => {
@@ -195,19 +135,6 @@ export default function ExchangeConnect() {
     if (activeSection === "open-orders" && !openOrders) fetchOpenOrders();
   }, [apiConnected, activeSection, funds, orders, openOrders, fetchFunds, fetchOrders, fetchOpenOrders]);
 
-  const formatPrice = (price) => {
-    if (!price) return "---";
-    return "₹" + price.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  };
-
-  const formatVolume = (vol) => {
-    if (!vol) return "---";
-    if (vol >= 1e7) return `₹${(vol / 1e7).toFixed(2)}Cr`;
-    if (vol >= 1e5) return `₹${(vol / 1e5).toFixed(2)}L`;
-    if (vol >= 1e3) return `₹${(vol / 1e3).toFixed(1)}K`;
-    return `₹${vol.toFixed(0)}`;
-  };
-
   const sections = apiConnected
     ? [
         { id: "prices", label: "Live Prices" },
@@ -286,15 +213,15 @@ export default function ExchangeConnect() {
       </div>
 
       {/* Error banner */}
-      {(error || accountError) && (
-        <div className="exchange-error">{error || accountError}</div>
+      {accountError && (
+        <div className="exchange-error">{accountError}</div>
       )}
 
       {/* === LIVE PRICES === */}
       {activeSection === "prices" && (
         <div className="exchange-prices-card">
           <div className="exchange-prices-header">
-            <h3>WazirX Live Prices (INR)</h3>
+            <h3>WazirX Live Prices ({currency})</h3>
             {lastUpdated && (
               <span className="exchange-last-updated">
                 Updated: {lastUpdated.toLocaleTimeString()}
@@ -308,15 +235,15 @@ export default function ExchangeConnect() {
             <div className="exchange-price-table">
               <div className="exchange-price-row exchange-price-row-header">
                 <span className="ep-col ep-col-name">Token</span>
-                <span className="ep-col ep-col-price">Price (INR)</span>
+                <span className="ep-col ep-col-price">Price</span>
                 <span className="ep-col ep-col-change">24h Change</span>
                 <span className="ep-col ep-col-hl">24h High / Low</span>
                 <span className="ep-col ep-col-vol">Volume</span>
                 <span className="ep-col ep-col-spread">Bid / Ask</span>
               </div>
 
-              {SUPPORTED_PAIRS.map(({ symbol }) => {
-                const d = wazirxData[symbol];
+              {SUPPORTED_SYMBOLS.map((symbol) => {
+                const d = wazirxPrices[symbol];
                 if (!d) return null;
 
                 const changeClass = d.change >= 0 ? "ep-change-up" : "ep-change-down";
@@ -325,18 +252,18 @@ export default function ExchangeConnect() {
                   <div key={symbol} className="exchange-price-row">
                     <span className="ep-col ep-col-name">
                       <strong>{symbol}</strong>
-                      <span className="ep-pair">/INR</span>
+                      <span className="ep-pair">{pairLabel}</span>
                     </span>
-                    <span className="ep-col ep-col-price">{formatPrice(d.price)}</span>
+                    <span className="ep-col ep-col-price">{formatPrice(d.priceInr)}</span>
                     <span className={`ep-col ep-col-change ${changeClass}`}>
                       {d.change >= 0 ? "+" : ""}{d.change?.toFixed(2)}%
                     </span>
                     <span className="ep-col ep-col-hl">
-                      {formatPrice(d.high)} / {formatPrice(d.low)}
+                      {formatPrice(d.highInr)} / {formatPrice(d.lowInr)}
                     </span>
-                    <span className="ep-col ep-col-vol">{formatVolume(d.quoteVolume)}</span>
+                    <span className="ep-col ep-col-vol">{formatVolume(d.quoteVolumeInr)}</span>
                     <span className="ep-col ep-col-spread">
-                      {formatPrice(d.bidPrice)} / {formatPrice(d.askPrice)}
+                      {formatPrice(d.bidPriceInr)} / {formatPrice(d.askPriceInr)}
                     </span>
                   </div>
                 );

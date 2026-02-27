@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import gsap from 'gsap'
+import { CurrencyProvider, useCurrency } from "@/context/CurrencyContext"
 import PriceTicker from "@/components/PriceTicker/PriceTicker"
 import PortfolioSummary from "@/components/PortfolioSummary/PortfolioSummary"
 import MainChart from "@/components/CryptoGraphs/MainChart"
@@ -13,6 +14,14 @@ import ExchangeConnect from "@/components/ExchangeConnect/ExchangeConnect"
 import './styles.css'
 
 export default function DashboardPage() {
+  return (
+    <CurrencyProvider>
+      <DashboardContent />
+    </CurrencyProvider>
+  )
+}
+
+function DashboardContent() {
   const [activeTab, setActiveTab] = useState('overview')
   const [username, setUsername] = useState('Guest')
   const router = useRouter()
@@ -98,6 +107,8 @@ export default function DashboardPage() {
 }
 
 const NavigationBar = ({ username, activeTab, tabs, onTabChange, onLogout }) => {
+  const { currency, toggleCurrency } = useCurrency()
+
   return (
     <nav className="dashboard-nav">
       <div className="nav-left">
@@ -115,6 +126,14 @@ const NavigationBar = ({ username, activeTab, tabs, onTabChange, onLogout }) => 
         </div>
       </div>
       <div className="nav-right">
+        <button className="currency-toggle" onClick={toggleCurrency}>
+          <span className={`currency-option ${currency === "INR" ? "currency-active" : ""}`}>
+            INR
+          </span>
+          <span className={`currency-option ${currency === "USD" ? "currency-active" : ""}`}>
+            USD
+          </span>
+        </button>
         <div className="nav-user">
           <div className="nav-avatar">
             {username.charAt(0).toUpperCase()}
@@ -135,7 +154,7 @@ const Footer = () => {
       <div className="footer-content">
         <span className="footer-brand">CryptoDash</span>
         <span className="footer-divider">|</span>
-        <span className="footer-text">Real-time data from Binance &amp; WazirX</span>
+        <span className="footer-text">Real-time data from WazirX &amp; Binance</span>
         <span className="footer-divider">|</span>
         <span className="footer-text">Nikhil Charan &copy; 2025</span>
       </div>

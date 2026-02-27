@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
+import { useCurrency } from "@/context/CurrencyContext";
 import "./Watchlist.css";
 
 const AVAILABLE_TOKENS = [
@@ -10,44 +11,8 @@ const AVAILABLE_TOKENS = [
 
 export default function Watchlist() {
   const [watchlist, setWatchlist] = useState(["BTC", "ETH", "SOL", "XRP"]);
-  const [prices, setPrices] = useState({});
   const [showAdd, setShowAdd] = useState(false);
-  const wsRef = useRef(null);
-
-  useEffect(() => {
-    if (wsRef.current) wsRef.current.close();
-
-    if (watchlist.length === 0) return;
-
-    const streams = watchlist
-      .map((s) => `${s.toLowerCase()}usdt@miniTicker`)
-      .join("/");
-
-    wsRef.current = new WebSocket(
-      `wss://stream.binance.com:9443/stream?streams=${streams}`
-    );
-
-    wsRef.current.onmessage = (msg) => {
-      const { data } = JSON.parse(msg.data);
-      if (!data) return;
-
-      const symbol = data.s?.replace("USDT", "");
-      if (!symbol) return;
-
-      setPrices((prev) => ({
-        ...prev,
-        [symbol]: {
-          price: parseFloat(data.c),
-          change: parseFloat(data.P),
-          high: parseFloat(data.h),
-          low: parseFloat(data.l),
-          volume: parseFloat(data.v),
-        },
-      }));
-    };
-
-    return () => wsRef.current?.close();
-  }, [watchlist]);
+  const { wazirxPrices, formatPrice, formatVolume, pairLabel } = useCurrency();
 
   const addToken = (token) => {
     if (!watchlist.includes(token)) {
@@ -58,23 +23,6 @@ export default function Watchlist() {
 
   const removeToken = (token) => {
     setWatchlist((prev) => prev.filter((t) => t !== token));
-  };
-
-  const formatPrice = (price) => {
-    if (price >= 1000)
-      return price.toLocaleString("en-US", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      });
-    if (price >= 1) return price.toFixed(4);
-    return price.toFixed(6);
-  };
-
-  const formatVolume = (vol) => {
-    if (vol >= 1e9) return `${(vol / 1e9).toFixed(2)}B`;
-    if (vol >= 1e6) return `${(vol / 1e6).toFixed(2)}M`;
-    if (vol >= 1e3) return `${(vol / 1e3).toFixed(1)}K`;
-    return vol.toFixed(0);
   };
 
   const available = AVAILABLE_TOKENS.filter((t) => !watchlist.includes(t));
@@ -116,7 +64,7 @@ export default function Watchlist() {
         </div>
 
         {watchlist.map((token) => {
-          const p = prices[token];
+          const p = wazirxPrices[token];
           const changeClass =
             p?.change >= 0 ? "wl-change-up" : "wl-change-down";
 
@@ -124,10 +72,10 @@ export default function Watchlist() {
             <div key={token} className="watchlist-row">
               <span className="wl-col wl-col-name">
                 <strong>{token}</strong>
-                <span className="wl-pair">/USDT</span>
+                <span className="wl-pair">{pairLabel}</span>
               </span>
               <span className="wl-col wl-col-price">
-                ${p ? formatPrice(p.price) : "---"}
+                {p ? formatPrice(p.priceInr) : "---"}
               </span>
               <span className={`wl-col wl-col-change ${changeClass}`}>
                 {p
@@ -136,11 +84,11 @@ export default function Watchlist() {
               </span>
               <span className="wl-col wl-col-hl">
                 {p
-                  ? `$${formatPrice(p.high)} / $${formatPrice(p.low)}`
+                  ? `${formatPrice(p.highInr)} / ${formatPrice(p.lowInr)}`
                   : "---"}
               </span>
               <span className="wl-col wl-col-vol">
-                {p ? formatVolume(p.volume) : "---"}
+                {p ? formatVolume(p.quoteVolumeInr) : "---"}
               </span>
               <span className="wl-col wl-col-action">
                 <button
