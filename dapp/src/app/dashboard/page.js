@@ -11,6 +11,8 @@ import MultiChart from "@/components/CryptoGraphs/MultiChart"
 import Watchlist from "@/components/Watchlist/Watchlist"
 import MarketStats from "@/components/MarketStats/MarketStats"
 import ExchangeConnect from "@/components/ExchangeConnect/ExchangeConnect"
+import AiChat from "@/components/AiChat/AiChat"
+import AiChatWidget from "@/components/AiChat/AiChatWidget"
 import './styles.css'
 
 export default function DashboardPage() {
@@ -56,6 +58,7 @@ function DashboardContent() {
     { id: 'watchlist', label: 'Watchlist' },
     { id: 'markets', label: 'Markets' },
     { id: 'exchange', label: 'WazirX' },
+    { id: 'ai', label: 'AI Bot' },
   ]
 
   return (
@@ -99,8 +102,13 @@ function DashboardContent() {
         {activeTab === 'exchange' && (
           <ExchangeConnect />
         )}
+
+        {activeTab === 'ai' && (
+          <AiChat />
+        )}
       </div>
 
+      {activeTab !== 'ai' && <AiChatWidget />}
       <Footer />
     </section>
   )
