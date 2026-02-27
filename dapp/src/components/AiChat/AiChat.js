@@ -38,6 +38,7 @@ export default function AiChat({ compact = false }) {
   const [showEnvExport, setShowEnvExport] = useState(false);
   const [settings, setSettings] = useState({});
   const [settingsSaved, setSettingsSaved] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Custom model form
   const [newModelName, setNewModelName] = useState("");
@@ -468,9 +469,9 @@ export default function AiChat({ compact = false }) {
   // RENDER
   // ==========================================================
   return (
-    <div className={`ai-chat ${compact ? "ai-chat-compact" : ""}`}>
+    <div className={`ai-chat ${compact ? "ai-chat-compact" : ""} ${!compact && sidebarOpen ? "ai-sidebar-open" : ""}`}>
       {/* ===== SIDEBAR (full page only) ===== */}
-      {!compact && (
+      {!compact && sidebarOpen && (
         <aside className="ai-sidebar">
           <div className="ai-sidebar-top">
             <div className="ai-sidebar-brand">
@@ -527,6 +528,32 @@ export default function AiChat({ compact = false }) {
 
       {/* ===== MAIN AREA ===== */}
       <div className="ai-main">
+        {/* Full-page header with sidebar toggle */}
+        {!compact && (
+          <div className="ai-main-header">
+            <button
+              className="ai-sidebar-toggle"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              title={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+            >
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <rect x="1" y="2" width="16" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none" />
+                <line x1="6.5" y1="2" x2="6.5" y2="16" stroke="currentColor" strokeWidth="1.5" />
+              </svg>
+            </button>
+            <span className="ai-main-header-title">CryptoDash AI</span>
+            <div className="ai-main-header-controls">
+              {modelSelector(true)}
+              <button
+                className="ai-main-settings-btn"
+                onClick={() => setShowSettings(!showSettings)}
+              >
+                {showSettings ? "Chat" : "Settings"}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Compact header */}
         {compact && (
           <div className="ai-compact-header">
