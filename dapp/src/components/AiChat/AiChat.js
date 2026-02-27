@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import ReactMarkdown from "react-markdown";
 import { useCurrency } from "@/context/CurrencyContext";
 import "./AiChat.css";
 
@@ -10,6 +11,7 @@ const QUICK_PROMPTS = [
   "Which tokens are performing best right now?",
   "Summarize ETH vs SOL today",
   "Any tokens showing bearish signals?",
+  "Give me a portfolio overview",
 ];
 
 const SETTINGS_KEY = "ai_bot_settings";
@@ -30,26 +32,33 @@ export default function AiChat({ compact = false }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [models, setModels] = useState([]);
-  const [selectedModel, setSelectedModel] = useState("claude");
+  const [builtInModels, setBuiltInModels] = useState([]);
+  const [selectedModel, setSelectedModel] = useState("claude-sonnet");
   const [showSettings, setShowSettings] = useState(false);
   const [showEnvExport, setShowEnvExport] = useState(false);
   const [settings, setSettings] = useState({});
   const [settingsSaved, setSettingsSaved] = useState(false);
+
+  // Custom model form
+  const [newModelName, setNewModelName] = useState("");
+  const [newModelId, setNewModelId] = useState("");
+
   const chatEndRef = useRef(null);
   const { wazirxPrices } = useCurrency();
 
   // Load settings on mount
   useEffect(() => {
-    setSettings(loadSettings());
+    const s = loadSettings();
+    setSettings(s);
+    if (s.selectedModel) setSelectedModel(s.selectedModel);
   }, []);
 
-  // Fetch available models
+  // Fetch available built-in models
   useEffect(() => {
     fetch("/api/ai/chat")
       .then((r) => r.json())
       .then((data) => {
-        if (data.models) setModels(data.models);
+        if (data.models) setBuiltInModels(data.models);
       })
       .catch(() => {});
   }, []);
@@ -59,8 +68,14 @@ export default function AiChat({ compact = false }) {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Check if credentials are configured
   const hasCredentials = settings.awsAccessKeyId && settings.awsSecretAccessKey;
+  const customModels = settings.customModels || [];
+
+  // All models = built-in + custom
+  const allModels = [
+    ...builtInModels.map((m) => ({ ...m, isCustom: false })),
+    ...customModels.map((m) => ({ ...m, isCustom: true })),
+  ];
 
   function updateSetting(key, value) {
     setSettings((prev) => ({ ...prev, [key]: value }));
@@ -68,9 +83,30 @@ export default function AiChat({ compact = false }) {
   }
 
   function handleSaveSettings() {
-    saveSettings(settings);
+    saveSettings({ ...settings, selectedModel });
     setSettingsSaved(true);
     setTimeout(() => setSettingsSaved(false), 2000);
+  }
+
+  function addCustomModel() {
+    const name = newModelName.trim();
+    const id = newModelId.trim();
+    if (!name || !id) return;
+
+    const key = "custom-" + name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    const exists = customModels.some((m) => m.key === key || m.id === id);
+    if (exists) return;
+
+    const updated = [...customModels, { key, id, label: name, provider: "Custom" }];
+    updateSetting("customModels", updated);
+    setNewModelName("");
+    setNewModelId("");
+  }
+
+  function removeCustomModel(key) {
+    const updated = customModels.filter((m) => m.key !== key);
+    updateSetting("customModels", updated);
+    if (selectedModel === key) setSelectedModel("claude-sonnet");
   }
 
   function generateEnvContent() {
@@ -78,9 +114,14 @@ export default function AiChat({ compact = false }) {
     if (settings.awsAccessKeyId) lines.push(`AWS_ACCESS_KEY_ID=${settings.awsAccessKeyId}`);
     if (settings.awsSecretAccessKey) lines.push(`AWS_SECRET_ACCESS_KEY=${settings.awsSecretAccessKey}`);
     if (settings.awsRegion) lines.push(`AWS_REGION=${settings.awsRegion}`);
-    if (settings.claudeModelId) lines.push(`BEDROCK_CLAUDE_MODEL_ID=${settings.claudeModelId}`);
-    if (settings.llamaModelId) lines.push(`BEDROCK_LLAMA_MODEL_ID=${settings.llamaModelId}`);
-    if (settings.mistralModelId) lines.push(`BEDROCK_MISTRAL_MODEL_ID=${settings.mistralModelId}`);
+    if (customModels.length > 0) {
+      lines.push("");
+      lines.push("# Custom Models");
+      customModels.forEach((m, i) => {
+        lines.push(`BEDROCK_CUSTOM_MODEL_${i}_NAME=${m.label}`);
+        lines.push(`BEDROCK_CUSTOM_MODEL_${i}_ID=${m.id}`);
+      });
+    }
     return lines.join("\n");
   }
 
@@ -88,7 +129,6 @@ export default function AiChat({ compact = false }) {
     navigator.clipboard.writeText(generateEnvContent());
   }
 
-  // Build market context string from live prices
   function buildMarketContext() {
     const lines = [];
     for (const [symbol, d] of Object.entries(wazirxPrices)) {
@@ -127,10 +167,8 @@ export default function AiChat({ compact = false }) {
             awsAccessKeyId: settings.awsAccessKeyId,
             awsSecretAccessKey: settings.awsSecretAccessKey,
             awsRegion: settings.awsRegion || "us-east-1",
-            claudeModelId: settings.claudeModelId,
-            llamaModelId: settings.llamaModelId,
-            mistralModelId: settings.mistralModelId,
           },
+          customModels,
         }),
       });
 
@@ -176,20 +214,53 @@ export default function AiChat({ compact = false }) {
     setMessages([]);
   }
 
+  function handleModelChange(val) {
+    setSelectedModel(val);
+    setSettings((prev) => ({ ...prev, selectedModel: val }));
+  }
+
+  // Group models by provider for the selector
+  const groupedModels = {};
+  for (const m of allModels) {
+    const group = m.provider || "Other";
+    if (!groupedModels[group]) groupedModels[group] = [];
+    groupedModels[group].push(m);
+  }
+
+  const modelSelector = (sm) => (
+    <select
+      className={`ai-model-select ${sm ? "ai-model-select-sm" : ""}`}
+      value={selectedModel}
+      onChange={(e) => handleModelChange(e.target.value)}
+    >
+      {Object.entries(groupedModels).map(([provider, models]) => (
+        <optgroup key={provider} label={provider}>
+          {models.map((m) => (
+            <option key={m.key} value={m.key}>
+              {m.label}
+            </option>
+          ))}
+        </optgroup>
+      ))}
+      {allModels.length === 0 && <option value="claude-sonnet">Claude 3.5 Sonnet</option>}
+    </select>
+  );
+
   // === SETTINGS PANEL ===
   const settingsPanel = (
     <div className="ai-settings-panel">
       <div className="ai-settings-header">
-        <h3>AI Bot Settings</h3>
-        <button className="ai-settings-close" onClick={() => setShowSettings(false)}>
+        <h3>Settings</h3>
+        <button className="ai-settings-back" onClick={() => setShowSettings(false)}>
           Back to Chat
         </button>
       </div>
 
+      {/* AWS Credentials */}
       <div className="ai-settings-section">
-        <h4>AWS Credentials (Required)</h4>
+        <h4>AWS Credentials</h4>
         <p className="ai-settings-hint">
-          Get these from AWS Console → IAM → Users → Security Credentials → Create Access Key
+          AWS Console &rarr; IAM &rarr; Users &rarr; Security Credentials &rarr; Create Access Key
         </p>
         <div className="ai-settings-fields">
           <label className="ai-settings-label">
@@ -231,45 +302,98 @@ export default function AiChat({ compact = false }) {
         </div>
       </div>
 
+      {/* Built-in models info */}
       <div className="ai-settings-section">
-        <h4>Custom Model IDs (Optional)</h4>
+        <h4>Built-in Models</h4>
         <p className="ai-settings-hint">
-          Override default Bedrock model IDs. Leave blank to use defaults.
+          Pre-configured models. Enable them in AWS Bedrock Console &rarr; Model Access.
         </p>
-        <div className="ai-settings-fields">
-          <label className="ai-settings-label">
-            <span>Claude Model ID</span>
-            <input
-              type="text"
-              className="ai-settings-input"
-              placeholder="anthropic.claude-3-5-sonnet-20241022-v2:0"
-              value={settings.claudeModelId || ""}
-              onChange={(e) => updateSetting("claudeModelId", e.target.value)}
-            />
-          </label>
-          <label className="ai-settings-label">
-            <span>Llama Model ID</span>
-            <input
-              type="text"
-              className="ai-settings-input"
-              placeholder="meta.llama3-1-70b-instruct-v1:0"
-              value={settings.llamaModelId || ""}
-              onChange={(e) => updateSetting("llamaModelId", e.target.value)}
-            />
-          </label>
-          <label className="ai-settings-label">
-            <span>Mistral Model ID</span>
-            <input
-              type="text"
-              className="ai-settings-input"
-              placeholder="mistral.mistral-large-2407-v1:0"
-              value={settings.mistralModelId || ""}
-              onChange={(e) => updateSetting("mistralModelId", e.target.value)}
-            />
-          </label>
+        <div className="ai-builtin-models-list">
+          {builtInModels.map((m) => (
+            <div key={m.key} className="ai-builtin-model-row">
+              <span className="ai-builtin-model-provider">{m.provider}</span>
+              <span className="ai-builtin-model-name">{m.label}</span>
+              <span className="ai-builtin-model-id">{m.id}</span>
+            </div>
+          ))}
         </div>
       </div>
 
+      {/* Custom models */}
+      <div className="ai-settings-section">
+        <h4>Custom Models</h4>
+        <p className="ai-settings-hint">
+          Add any Bedrock model by its model ID. Find IDs in AWS Bedrock Console &rarr; Foundation Models.
+        </p>
+
+        {customModels.length > 0 && (
+          <div className="ai-custom-models-list">
+            {customModels.map((m) => (
+              <div key={m.key} className="ai-custom-model-row">
+                <div className="ai-custom-model-info">
+                  <span className="ai-custom-model-name">{m.label}</span>
+                  <span className="ai-custom-model-id">{m.id}</span>
+                </div>
+                <button
+                  className="ai-custom-model-remove"
+                  onClick={() => removeCustomModel(m.key)}
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="ai-add-model-form">
+          <input
+            type="text"
+            className="ai-settings-input"
+            placeholder="Display name (e.g. GPT-4o, Qwen 2.5)"
+            value={newModelName}
+            onChange={(e) => setNewModelName(e.target.value)}
+          />
+          <input
+            type="text"
+            className="ai-settings-input"
+            placeholder="Bedrock model ID (e.g. vendor.model-name-v1:0)"
+            value={newModelId}
+            onChange={(e) => setNewModelId(e.target.value)}
+          />
+          <button
+            className="ai-add-model-btn"
+            onClick={addCustomModel}
+            disabled={!newModelName.trim() || !newModelId.trim()}
+          >
+            + Add Model
+          </button>
+        </div>
+
+        <div className="ai-model-examples">
+          <span className="ai-model-examples-title">Quick fill:</span>
+          <div className="ai-model-example-chips">
+            {[
+              { name: "Qwen 2.5", id: "qwen.qwen2-5-72b-instruct-v1:0" },
+              { name: "GPT-4o", id: "openai.gpt-4o-v1:0" },
+              { name: "DeepSeek V3", id: "deepseek.deepseek-v3-v1:0" },
+              { name: "Titan Premier", id: "amazon.titan-text-premier-v1:0" },
+            ].map((ex) => (
+              <button
+                key={ex.id}
+                className="ai-model-example-chip"
+                onClick={() => {
+                  setNewModelName(ex.name);
+                  setNewModelId(ex.id);
+                }}
+              >
+                {ex.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Actions */}
       <div className="ai-settings-actions">
         <button className="ai-settings-save" onClick={handleSaveSettings}>
           {settingsSaved ? "Saved!" : "Save Settings"}
@@ -285,7 +409,7 @@ export default function AiChat({ compact = false }) {
       {showEnvExport && (
         <div className="ai-env-export">
           <div className="ai-env-export-header">
-            <span>Copy this into your hosting platform&apos;s environment variables</span>
+            <span>Copy into your hosting environment variables</span>
             <button className="ai-env-copy-btn" onClick={copyEnvToClipboard}>
               Copy
             </button>
@@ -301,162 +425,226 @@ export default function AiChat({ compact = false }) {
     </div>
   );
 
+  // ==========================================================
+  // RENDER
+  // ==========================================================
   return (
     <div className={`ai-chat ${compact ? "ai-chat-compact" : ""}`}>
-      {/* Header */}
+      {/* ===== SIDEBAR (full page only) ===== */}
       {!compact && (
-        <div className="ai-chat-header">
-          <div className="ai-chat-title-row">
-            <h2 className="ai-chat-title">CryptoDash AI</h2>
-            <span className="ai-chat-badge">Powered by Amazon Bedrock</span>
-          </div>
-          <p className="ai-chat-subtitle">
-            Ask about market trends, price analysis, and trading insights — powered by live WazirX data
-          </p>
-          <div className="ai-chat-controls">
-            <select
-              className="ai-model-select"
-              value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value)}
-            >
-              {models.map((m) => (
-                <option key={m.key} value={m.key}>
-                  {m.label}
-                </option>
-              ))}
-              {models.length === 0 && <option value="claude">Claude (Anthropic)</option>}
-            </select>
-            <button className="ai-clear-btn" onClick={clearChat}>
-              Clear Chat
-            </button>
-            <button
-              className={`ai-settings-btn ${hasCredentials ? "" : "ai-settings-btn-warn"}`}
-              onClick={() => setShowSettings(!showSettings)}
-            >
-              {showSettings ? "Chat" : "Settings"}
-            </button>
-          </div>
-          {!hasCredentials && !showSettings && (
-            <div className="ai-credentials-banner">
-              AWS credentials not configured.
-              <button onClick={() => setShowSettings(true)}>Open Settings</button>
-              to add your keys.
+        <aside className="ai-sidebar">
+          <div className="ai-sidebar-top">
+            <div className="ai-sidebar-brand">
+              <div className="ai-sidebar-logo">AI</div>
+              <div>
+                <div className="ai-sidebar-title">CryptoDash AI</div>
+                <div className="ai-sidebar-subtitle">Powered by Bedrock</div>
+              </div>
             </div>
-          )}
-        </div>
-      )}
+            <button className="ai-new-chat-btn" onClick={clearChat}>
+              + New Chat
+            </button>
+          </div>
 
-      {compact && (
-        <div className="ai-chat-compact-header">
-          <span className="ai-chat-compact-title">CryptoDash AI</span>
-          <div className="ai-chat-compact-controls">
-            <select
-              className="ai-model-select ai-model-select-sm"
-              value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value)}
-            >
-              {models.map((m) => (
-                <option key={m.key} value={m.key}>
-                  {m.label}
-                </option>
-              ))}
-              {models.length === 0 && <option value="claude">Claude</option>}
-            </select>
+          <div className="ai-sidebar-body">
+            <div className="ai-sidebar-section">
+              <span className="ai-sidebar-label">Model</span>
+              {modelSelector(false)}
+            </div>
+
+            {hasCredentials && (
+              <div className="ai-sidebar-section">
+                <span className="ai-sidebar-label">Suggestions</span>
+                <div className="ai-sidebar-prompts">
+                  {QUICK_PROMPTS.map((q, i) => (
+                    <button
+                      key={i}
+                      className="ai-sidebar-prompt"
+                      onClick={() => sendMessage(q)}
+                    >
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="ai-sidebar-footer">
+            {!hasCredentials && (
+              <div className="ai-cred-warning">
+                AWS credentials required
+              </div>
+            )}
             <button
-              className="ai-settings-btn-sm"
+              className={`ai-sidebar-settings-btn ${!hasCredentials ? "ai-sidebar-settings-warn" : ""}`}
               onClick={() => setShowSettings(!showSettings)}
-              title="Settings"
             >
-              {showSettings ? "Chat" : "Cfg"}
+              {showSettings ? "Back to Chat" : "Settings"}
             </button>
           </div>
-        </div>
+        </aside>
       )}
 
-      {/* Settings or Chat */}
-      {showSettings ? (
-        settingsPanel
-      ) : (
-        <>
-          {/* Messages */}
-          <div className="ai-chat-messages">
-            {messages.length === 0 && (
-              <div className="ai-chat-empty">
-                <div className="ai-chat-empty-icon">AI</div>
-                <p>{compact ? "Ask me anything about the market" : "Ask me about market trends, token analysis, or trading strategies"}</p>
-                {!compact && hasCredentials && (
-                  <div className="ai-quick-prompts">
-                    {QUICK_PROMPTS.map((q, i) => (
-                      <button
-                        key={i}
-                        className="ai-quick-prompt"
-                        onClick={() => sendMessage(q)}
-                      >
-                        {q}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {!compact && !hasCredentials && (
-                  <button
-                    className="ai-quick-prompt"
-                    onClick={() => setShowSettings(true)}
-                  >
-                    Configure AWS credentials to get started
-                  </button>
-                )}
-              </div>
-            )}
-
-            {messages.map((m, i) => (
-              <div
-                key={i}
-                className={`ai-msg ${m.role === "user" ? "ai-msg-user" : "ai-msg-assistant"} ${m.isError ? "ai-msg-error" : ""}`}
+      {/* ===== MAIN AREA ===== */}
+      <div className="ai-main">
+        {/* Compact header */}
+        {compact && (
+          <div className="ai-compact-header">
+            <span className="ai-compact-title">CryptoDash AI</span>
+            <div className="ai-compact-controls">
+              {modelSelector(true)}
+              <button
+                className="ai-compact-cfg-btn"
+                onClick={() => setShowSettings(!showSettings)}
               >
-                <div className="ai-msg-avatar">
-                  {m.role === "user" ? "You" : "AI"}
-                </div>
-                <div className="ai-msg-body">
-                  {m.model && <span className="ai-msg-model">{m.model}</span>}
-                  <div className="ai-msg-content">{m.content}</div>
-                </div>
-              </div>
-            ))}
+                {showSettings ? "Chat" : "Cfg"}
+              </button>
+            </div>
+          </div>
+        )}
 
-            {loading && (
-              <div className="ai-msg ai-msg-assistant">
-                <div className="ai-msg-avatar">AI</div>
-                <div className="ai-msg-body">
-                  <div className="ai-typing">
-                    <span></span><span></span><span></span>
+        {/* Content: Settings or Chat */}
+        {showSettings ? (
+          settingsPanel
+        ) : (
+          <>
+            {/* Messages */}
+            <div className="ai-messages">
+              {messages.length === 0 && (
+                <div className="ai-empty-state">
+                  <div className="ai-empty-icon">AI</div>
+                  <h3 className="ai-empty-title">
+                    {compact ? "Ask anything" : "How can I help you today?"}
+                  </h3>
+                  <p className="ai-empty-sub">
+                    {compact
+                      ? "Market analysis with live data"
+                      : "AI-powered crypto market analysis with real-time WazirX data"}
+                  </p>
+
+                  {!compact && hasCredentials && (
+                    <div className="ai-empty-grid">
+                      {QUICK_PROMPTS.slice(0, 4).map((q, i) => (
+                        <button
+                          key={i}
+                          className="ai-empty-card"
+                          onClick={() => sendMessage(q)}
+                        >
+                          {q}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {!compact && !hasCredentials && (
+                    <button
+                      className="ai-empty-setup"
+                      onClick={() => setShowSettings(true)}
+                    >
+                      Configure AWS credentials to get started
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {messages.map((m, i) => (
+                <div
+                  key={i}
+                  className={`ai-message ${
+                    m.role === "user" ? "ai-message-user" : "ai-message-ai"
+                  } ${m.isError ? "ai-message-error" : ""}`}
+                >
+                  <div className="ai-message-row">
+                    <div className="ai-message-avatar">
+                      {m.role === "user" ? "Y" : "AI"}
+                    </div>
+                    <div className="ai-message-body">
+                      <div className="ai-message-meta">
+                        <span className="ai-message-role">
+                          {m.role === "user" ? "You" : "CryptoDash AI"}
+                        </span>
+                        {m.model && (
+                          <span className="ai-message-model">{m.model}</span>
+                        )}
+                      </div>
+                      <div className="ai-message-content">
+                        {m.role === "assistant" && !m.isError ? (
+                          <ReactMarkdown>{m.content}</ReactMarkdown>
+                        ) : (
+                          m.content
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
+              ))}
+
+              {loading && (
+                <div className="ai-message ai-message-ai">
+                  <div className="ai-message-row">
+                    <div className="ai-message-avatar">AI</div>
+                    <div className="ai-message-body">
+                      <div className="ai-message-meta">
+                        <span className="ai-message-role">CryptoDash AI</span>
+                      </div>
+                      <div className="ai-typing">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div ref={chatEndRef} />
+            </div>
+
+            {/* Input area */}
+            <div className="ai-input-area">
+              <div className="ai-input-wrapper">
+                <textarea
+                  className="ai-input"
+                  placeholder={
+                    hasCredentials
+                      ? "Message CryptoDash AI..."
+                      : "Configure AWS keys in Settings first..."
+                  }
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  rows={1}
+                />
+                <button
+                  className="ai-send-btn"
+                  onClick={() => sendMessage()}
+                  disabled={loading || !input.trim()}
+                >
+                  {loading ? (
+                    <span className="ai-send-dots">...</span>
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path
+                        d="M2 8L14 8M14 8L9 3M14 8L9 13"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  )}
+                </button>
               </div>
-            )}
-
-            <div ref={chatEndRef} />
-          </div>
-
-          {/* Input */}
-          <div className="ai-chat-input-row">
-            <textarea
-              className="ai-chat-input"
-              placeholder={hasCredentials ? "Ask about market trends, prices, analysis..." : "Configure AWS keys in Settings first..."}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              rows={1}
-            />
-            <button
-              className="ai-send-btn"
-              onClick={() => sendMessage()}
-              disabled={loading || !input.trim()}
-            >
-              {loading ? "..." : "Send"}
-            </button>
-          </div>
-        </>
-      )}
+              {!compact && (
+                <p className="ai-disclaimer">
+                  AI analysis is not financial advice. Always do your own research.
+                </p>
+              )}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

@@ -3,18 +3,57 @@ import {
   ConverseCommand,
 } from "@aws-sdk/client-bedrock-runtime";
 
+// Built-in Bedrock model presets
 const DEFAULT_MODELS = {
-  claude: {
+  "claude-sonnet": {
     id: "anthropic.claude-3-5-sonnet-20241022-v2:0",
-    label: "Claude (Anthropic)",
+    label: "Claude 3.5 Sonnet",
+    provider: "Anthropic",
   },
-  llama: {
+  "claude-haiku": {
+    id: "anthropic.claude-3-5-haiku-20241022-v1:0",
+    label: "Claude 3.5 Haiku",
+    provider: "Anthropic",
+  },
+  "llama3-70b": {
     id: "meta.llama3-1-70b-instruct-v1:0",
-    label: "Llama (Meta)",
+    label: "Llama 3.1 70B",
+    provider: "Meta",
   },
-  mistral: {
+  "llama3-8b": {
+    id: "meta.llama3-1-8b-instruct-v1:0",
+    label: "Llama 3.1 8B",
+    provider: "Meta",
+  },
+  "mistral-large": {
     id: "mistral.mistral-large-2407-v1:0",
-    label: "Mistral",
+    label: "Mistral Large",
+    provider: "Mistral",
+  },
+  "nova-pro": {
+    id: "amazon.nova-pro-v1:0",
+    label: "Amazon Nova Pro",
+    provider: "Amazon",
+  },
+  "nova-lite": {
+    id: "amazon.nova-lite-v1:0",
+    label: "Amazon Nova Lite",
+    provider: "Amazon",
+  },
+  "cohere-command": {
+    id: "cohere.command-r-plus-v1:0",
+    label: "Cohere Command R+",
+    provider: "Cohere",
+  },
+  "jamba-large": {
+    id: "ai21.jamba-1-5-large-v1:0",
+    label: "AI21 Jamba 1.5 Large",
+    provider: "AI21",
+  },
+  "deepseek-r1": {
+    id: "deepseek.deepseek-r1-v1:0",
+    label: "DeepSeek R1",
+    provider: "DeepSeek",
   },
 };
 
@@ -42,13 +81,14 @@ export async function POST(request) {
       model: modelKey,
       marketContext,
       credentials,
+      customModels,
     } = await request.json();
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return Response.json({ error: "Messages are required" }, { status: 400 });
     }
 
-    // Credentials can come from request body or env vars
+    // Credentials from request body or env vars
     const accessKeyId = credentials?.awsAccessKeyId || process.env.AWS_ACCESS_KEY_ID;
     const secretAccessKey = credentials?.awsSecretAccessKey || process.env.AWS_SECRET_ACCESS_KEY;
     const region = credentials?.awsRegion || process.env.AWS_REGION || "us-east-1";
@@ -63,21 +103,36 @@ export async function POST(request) {
       );
     }
 
-    // Build model config — check for custom model IDs from credentials
-    const modelPresets = { ...DEFAULT_MODELS };
-    if (credentials?.claudeModelId) modelPresets.claude = { ...modelPresets.claude, id: credentials.claudeModelId };
-    if (credentials?.llamaModelId) modelPresets.llama = { ...modelPresets.llama, id: credentials.llamaModelId };
-    if (credentials?.mistralModelId) modelPresets.mistral = { ...modelPresets.mistral, id: credentials.mistralModelId };
+    // Resolve model ID — check custom models first, then built-in presets
+    let modelId;
+    let modelLabel;
 
-    const preset = modelPresets[modelKey] || modelPresets.claude;
+    // Check if it's a user-added custom model
+    if (customModels && Array.isArray(customModels)) {
+      const custom = customModels.find((m) => m.key === modelKey);
+      if (custom) {
+        modelId = custom.id;
+        modelLabel = custom.label;
+      }
+    }
 
-    // Create client per request with provided credentials
+    // Fall back to built-in presets
+    if (!modelId) {
+      const preset = DEFAULT_MODELS[modelKey];
+      if (preset) {
+        modelId = preset.id;
+        modelLabel = preset.label;
+      } else {
+        // Last resort — use the key as a raw model ID
+        modelId = modelKey;
+        modelLabel = modelKey;
+      }
+    }
+
+    // Create client per request
     const client = new BedrockRuntimeClient({
       region,
-      credentials: {
-        accessKeyId,
-        secretAccessKey,
-      },
+      credentials: { accessKeyId, secretAccessKey },
     });
 
     // Build system prompt with live market data
@@ -92,7 +147,7 @@ export async function POST(request) {
     }));
 
     const command = new ConverseCommand({
-      modelId: preset.id,
+      modelId,
       system: [{ text: systemText }],
       messages: converseMessages,
       inferenceConfig: {
@@ -109,7 +164,7 @@ export async function POST(request) {
 
     return Response.json({
       response: outputText,
-      model: preset.label,
+      model: modelLabel,
       usage: response.usage,
     });
   } catch (err) {
@@ -119,7 +174,9 @@ export async function POST(request) {
     if (err.name === "AccessDeniedException" || err.name === "UnrecognizedClientException") {
       hint = "Invalid AWS credentials or you don't have access to this Bedrock model. Check your keys and enable model access in the AWS Bedrock console.";
     } else if (err.name === "ValidationException") {
-      hint = "The selected model ID may be invalid or not available in your region. Try a different model or region.";
+      hint = "The selected model ID may be invalid or not available in your region. Check the model ID and ensure it's enabled in Bedrock → Model Access.";
+    } else if (err.name === "ResourceNotFoundException") {
+      hint = "This model is not available in your selected region. Try switching to us-east-1 (most models available there).";
     }
 
     return Response.json(
@@ -129,12 +186,13 @@ export async function POST(request) {
   }
 }
 
-// Expose available models
+// Expose available built-in models
 export async function GET() {
   const models = Object.entries(DEFAULT_MODELS).map(([key, val]) => ({
     key,
     id: val.id,
     label: val.label,
+    provider: val.provider,
   }));
   return Response.json({ models });
 }
