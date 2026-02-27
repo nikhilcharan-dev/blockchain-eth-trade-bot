@@ -1,9 +1,107 @@
+/* Wrapper */
+.portfolio-summary-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 0 20px;
+  max-width: 90svw;
+  margin: 0 auto;
+}
+
+/* Section container */
+.portfolio-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.portfolio-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Badges */
+.portfolio-section-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 20px;
+}
+
+.portfolio-badge-wazirx {
+  background: rgba(0, 230, 118, 0.08);
+  border: 1px solid rgba(0, 230, 118, 0.2);
+  color: #00e676;
+}
+
+.portfolio-badge-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #00e676;
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.portfolio-badge-manual {
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+}
+
+/* Refresh button */
+.portfolio-refresh-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.5);
+  padding: 5px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.portfolio-refresh-btn:hover:not(:disabled) {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.portfolio-refresh-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Error */
+.portfolio-error {
+  padding: 12px 16px;
+  background: rgba(255, 82, 82, 0.06);
+  border: 1px solid rgba(255, 82, 82, 0.15);
+  border-radius: 10px;
+  color: #ff8a80;
+  font-size: 13px;
+}
+
+/* Loading text */
+.portfolio-loading {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.35);
+  margin-top: 4px;
+}
+
+/* Main layout */
 .portfolio-summary {
   display: flex;
   gap: 20px;
-  padding: 20px;
-  max-width: 90svw;
-  margin: 0 auto;
 }
 
 .portfolio-card {
@@ -136,6 +234,17 @@
   background: rgba(255, 255, 255, 0.06);
 }
 
+/* Fiat card (INR etc) */
+.portfolio-holding-fiat {
+  border-color: rgba(0, 230, 118, 0.1);
+  background: rgba(0, 230, 118, 0.03);
+}
+
+.portfolio-holding-fiat:hover {
+  border-color: rgba(0, 230, 118, 0.25);
+  background: rgba(0, 230, 118, 0.06);
+}
+
 .holding-header {
   display: flex;
   justify-content: space-between;
@@ -147,6 +256,20 @@
   font-weight: 700;
   font-size: 15px;
   color: rgba(255, 255, 255, 0.9);
+}
+
+.holding-change {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.holding-locked-badge {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(255, 213, 79, 0.1);
+  color: #ffd54f;
+  font-weight: 500;
 }
 
 .holding-remove-btn {
@@ -207,9 +330,13 @@
 }
 
 @media (max-width: 768px) {
+  .portfolio-summary-wrapper {
+    padding: 0 12px;
+  }
+
   .portfolio-summary {
     flex-direction: column;
-    padding: 12px;
+    gap: 12px;
   }
 
   .portfolio-total {
@@ -236,8 +363,8 @@
 }
 
 @media (max-width: 480px) {
-  .portfolio-summary {
-    padding: 8px;
+  .portfolio-summary-wrapper {
+    padding: 0 8px;
   }
 
   .portfolio-card {
@@ -250,5 +377,9 @@
 
   .portfolio-holdings {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .portfolio-section-header {
+    flex-wrap: wrap;
   }
 }
