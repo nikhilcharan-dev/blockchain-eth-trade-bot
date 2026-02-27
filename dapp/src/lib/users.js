@@ -1,58 +1,66 @@
-import fs from "fs";
-import path from "path";
 import bcrypt from "bcryptjs";
+import connectDB from "./mongodb";
+import User from "./models/User";
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const USERS_FILE = path.join(DATA_DIR, "users.json");
-
-function ensureDataDir() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
-}
-
-function readUsers() {
-  ensureDataDir();
-  if (!fs.existsSync(USERS_FILE)) return [];
-  const data = fs.readFileSync(USERS_FILE, "utf-8");
-  return JSON.parse(data);
-}
-
-function writeUsers(users) {
-  ensureDataDir();
-  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
-}
-
-export function findUser(username) {
-  const users = readUsers();
-  return users.find(
-    (u) => u.username.toLowerCase() === username.toLowerCase()
-  );
+export async function findUser(username) {
+  await connectDB();
+  const user = await User.findOne({
+    username: username.toLowerCase(),
+  });
+  return user;
 }
 
 export async function createUser(username, password) {
-  if (findUser(username)) {
+  await connectDB();
+
+  const existing = await User.findOne({
+    username: username.toLowerCase(),
+  });
+  if (existing) {
     return { error: "Username already exists" };
   }
 
   const hash = await bcrypt.hash(password, 10);
-  const users = readUsers();
-  const user = {
-    username,
+  const user = await User.create({
+    username: username.toLowerCase(),
     password: hash,
-    createdAt: new Date().toISOString(),
+  });
+
+  return {
+    user: { username: user.username, createdAt: user.createdAt },
   };
-  users.push(user);
-  writeUsers(users);
-  return { user: { username: user.username, createdAt: user.createdAt } };
 }
 
 export async function verifyUser(username, password) {
-  const user = findUser(username);
+  const user = await findUser(username);
   if (!user) return null;
 
   const valid = await bcrypt.compare(password, user.password);
   if (!valid) return null;
 
   return { username: user.username, createdAt: user.createdAt };
+}
+
+export async function recordLogin(username, ip, userAgent) {
+  await connectDB();
+  await User.updateOne(
+    { username: username.toLowerCase() },
+    {
+      $push: {
+        logins: {
+          $each: [{ ip: ip || "", userAgent: userAgent || "", at: new Date() }],
+          $slice: -20,
+        },
+      },
+    }
+  );
+}
+
+export async function getLoginHistory(username) {
+  await connectDB();
+  const user = await User.findOne(
+    { username: username.toLowerCase() },
+    { logins: 1 }
+  );
+  return user?.logins || [];
 }

@@ -1,4 +1,4 @@
-import { verifyUser } from "@/lib/users";
+import { verifyUser, recordLogin } from "@/lib/users";
 import { signToken } from "@/lib/jwt";
 
 export async function POST(request) {
@@ -34,6 +34,14 @@ export async function POST(request) {
         { status: 401 }
       );
     }
+
+    // Record login
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      request.headers.get("x-real-ip") ||
+      "";
+    const userAgent = request.headers.get("user-agent") || "";
+    recordLogin(user.username, ip, userAgent).catch(() => {});
 
     const token = await signToken({ username: user.username });
 
