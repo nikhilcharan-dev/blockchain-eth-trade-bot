@@ -109,6 +109,23 @@ export default function AiChat({ compact = false }) {
     if (selectedModel === key) setSelectedModel("claude-sonnet");
   }
 
+  // Built-in model ID overrides
+  const modelOverrides = settings.modelOverrides || {};
+
+  function getModelOverride(key) {
+    return modelOverrides[key] || "";
+  }
+
+  function setModelOverride(key, value) {
+    updateSetting("modelOverrides", { ...modelOverrides, [key]: value });
+  }
+
+  function clearModelOverride(key) {
+    const updated = { ...modelOverrides };
+    delete updated[key];
+    updateSetting("modelOverrides", updated);
+  }
+
   function generateEnvContent() {
     const lines = [];
     if (settings.awsAccessKeyId) lines.push(`AWS_ACCESS_KEY_ID=${settings.awsAccessKeyId}`);
@@ -169,6 +186,7 @@ export default function AiChat({ compact = false }) {
             awsRegion: settings.awsRegion || "us-east-1",
           },
           customModels,
+          modelOverrides,
         }),
       });
 
@@ -302,18 +320,39 @@ export default function AiChat({ compact = false }) {
         </div>
       </div>
 
-      {/* Built-in models info */}
+      {/* Built-in models — editable IDs */}
       <div className="ai-settings-section">
         <h4>Built-in Models</h4>
         <p className="ai-settings-hint">
-          Pre-configured models. Enable them in AWS Bedrock Console &rarr; Model Access.
+          Pre-configured models. Edit the model ID to use a different version or cross-region inference profile.
+          Enable models in AWS Bedrock Console &rarr; Model Access.
         </p>
         <div className="ai-builtin-models-list">
           {builtInModels.map((m) => (
-            <div key={m.key} className="ai-builtin-model-row">
+            <div
+              key={m.key}
+              className={`ai-builtin-model-row ${getModelOverride(m.key) ? "ai-builtin-model-modified" : ""}`}
+            >
               <span className="ai-builtin-model-provider">{m.provider}</span>
               <span className="ai-builtin-model-name">{m.label}</span>
-              <span className="ai-builtin-model-id">{m.id}</span>
+              <div className="ai-builtin-model-id-wrapper">
+                <input
+                  type="text"
+                  className="ai-builtin-model-id-input"
+                  value={getModelOverride(m.key) || m.id}
+                  onChange={(e) => setModelOverride(m.key, e.target.value)}
+                  title="Edit model ID"
+                />
+                {getModelOverride(m.key) && (
+                  <button
+                    className="ai-model-reset-btn"
+                    onClick={() => clearModelOverride(m.key)}
+                    title="Reset to default"
+                  >
+                    Reset
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>

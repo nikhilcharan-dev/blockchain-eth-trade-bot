@@ -205,3 +205,50 @@
   color: rgba(255, 255, 255, 0.4);
   text-align: right;
 }
+
+@media (max-width: 768px) {
+  .portfolio-summary {
+    flex-direction: column;
+    padding: 12px;
+  }
+
+  .portfolio-total {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .portfolio-value {
+    font-size: 26px;
+  }
+
+  .portfolio-holdings {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+  }
+
+  .portfolio-holding-card {
+    padding: 12px;
+  }
+
+  .holding-value {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .portfolio-summary {
+    padding: 8px;
+  }
+
+  .portfolio-card {
+    padding: 16px;
+  }
+
+  .portfolio-value {
+    font-size: 22px;
+  }
+
+  .portfolio-holdings {
+    grid-template-columns: 1fr 1fr;
+  }
+}

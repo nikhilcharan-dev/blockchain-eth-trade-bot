@@ -8,7 +8,11 @@ export default function LogoutPage() {
 
   useEffect(() => {
     localStorage.removeItem("id");
-    router.push("/");
+
+    // Clear HttpOnly auth cookie via server
+    fetch("/api/auth/login", { method: "DELETE" })
+      .catch(() => {})
+      .finally(() => router.push("/"));
   }, [router]);
 
   return null;

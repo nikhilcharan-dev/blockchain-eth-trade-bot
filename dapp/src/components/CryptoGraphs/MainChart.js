@@ -145,9 +145,7 @@ export default function MainChart() {
             <button
                 className="trade-toggle-btn"
                 onClick={toggleSidebar}
-                style={{
-                    right: isSidebarOpen ? "340px" : "10px",
-                }}
+                style={{ right: "10px" }}
             >
                 {isSidebarOpen ? "Hide Trades" : "Show Trades"}
             </button>
@@ -165,7 +163,7 @@ export default function MainChart() {
                     <option value="INR">INR</option>
                 </select>
 
-                <div style={{ height: "400px", width: isSidebarOpen ? "70svw" : "90svw" }}>
+                <div style={{ height: "400px", width: "100%" }}>
                     <Line
                         data={{
                             labels: ethTime,
@@ -210,7 +208,8 @@ export default function MainChart() {
             {/* ==================== SIDEBAR ==================== */}
             <div className="eth-chart-sidebar"
                 style={{
-                    minWidth: isSidebarOpen ? "20svw" : "0px",
+                    minWidth: isSidebarOpen ? "280px" : "0px",
+                    maxWidth: isSidebarOpen ? "320px" : "0px",
                     padding: isSidebarOpen ? "20px" : "20px 0",
                     border: isSidebarOpen ? "1px solid rgba(255,255,255,0.06)" : "none",
                 }}

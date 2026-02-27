@@ -1048,6 +1048,12 @@
   padding: 7px 10px;
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.02);
+  transition: background 0.15s;
+}
+
+.ai-builtin-model-modified {
+  background: rgba(99, 102, 241, 0.05);
+  border: 1px solid rgba(99, 102, 241, 0.12);
 }
 
 .ai-builtin-model-provider {
@@ -1064,13 +1070,53 @@
   font-weight: 500;
 }
 
-.ai-builtin-model-id {
+.ai-builtin-model-id-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ai-builtin-model-id-input {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  padding: 4px 6px;
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.25);
+  color: rgba(255, 255, 255, 0.5);
   font-family: "SF Mono", "Fira Code", monospace;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  outline: none;
+  transition: all 0.15s;
+}
+
+.ai-builtin-model-id-input:focus {
+  border-color: rgba(99, 102, 241, 0.4);
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.ai-builtin-model-modified .ai-builtin-model-id-input {
+  color: #a5b4fc;
+  border-color: rgba(99, 102, 241, 0.25);
+}
+
+.ai-model-reset-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.4);
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 9px;
+  cursor: pointer;
   white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.ai-model-reset-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 /* Custom models */
