@@ -9,6 +9,7 @@ import MainChart from "@/components/CryptoGraphs/MainChart"
 import MultiChart from "@/components/CryptoGraphs/MultiChart"
 import Watchlist from "@/components/Watchlist/Watchlist"
 import MarketStats from "@/components/MarketStats/MarketStats"
+import ExchangeConnect from "@/components/ExchangeConnect/ExchangeConnect"
 import './styles.css'
 
 export default function DashboardPage() {
@@ -45,6 +46,7 @@ export default function DashboardPage() {
     { id: 'trade', label: 'Trade' },
     { id: 'watchlist', label: 'Watchlist' },
     { id: 'markets', label: 'Markets' },
+    { id: 'exchange', label: 'WazirX' },
   ]
 
   return (
@@ -83,6 +85,10 @@ export default function DashboardPage() {
             <MarketStats />
             <MultiChart />
           </>
+        )}
+
+        {activeTab === 'exchange' && (
+          <ExchangeConnect />
         )}
       </div>
 
@@ -129,7 +135,7 @@ const Footer = () => {
       <div className="footer-content">
         <span className="footer-brand">CryptoDash</span>
         <span className="footer-divider">|</span>
-        <span className="footer-text">Real-time data from Binance</span>
+        <span className="footer-text">Real-time data from Binance &amp; WazirX</span>
         <span className="footer-divider">|</span>
         <span className="footer-text">Nikhil Charan &copy; 2025</span>
       </div>
