@@ -70,13 +70,18 @@ export function CurrencyProvider({ children }) {
       for (const { symbol, pair } of SUPPORTED_PAIRS) {
         const ticker = pairMap[pair];
         if (ticker) {
+          const lastPrice = parseFloat(ticker.lastPrice);
+          const openPrice = parseFloat(ticker.openPrice);
+          const vol = parseFloat(ticker.volume);
+          const change = openPrice > 0 ? ((lastPrice - openPrice) / openPrice) * 100 : 0;
+
           prices[symbol] = {
-            priceInr: parseFloat(ticker.lastPrice),
+            priceInr: lastPrice,
             highInr: parseFloat(ticker.highPrice),
             lowInr: parseFloat(ticker.lowPrice),
-            volume: parseFloat(ticker.volume),
-            quoteVolumeInr: parseFloat(ticker.quoteVolume),
-            change: parseFloat(ticker.priceChangePercent),
+            volume: vol,
+            quoteVolumeInr: vol * lastPrice,
+            change,
             bidPriceInr: parseFloat(ticker.bidPrice),
             askPriceInr: parseFloat(ticker.askPrice),
           };
