@@ -44,17 +44,28 @@ export async function POST(request) {
       return Response.json(Array.isArray(orders) ? orders : []);
     }
 
-    // Multi-symbol query: fetch for each provided symbol and merge
+    // Multi-symbol query: fetch in batches to avoid rate limits
     if (body.symbols && Array.isArray(body.symbols)) {
       const validSymbols = body.symbols.filter((s) => SYMBOL_REGEX.test(s));
-      const results = await Promise.allSettled(
-        validSymbols.map((s) =>
-          fetchOrdersForSymbol(s, creds.apiKey, creds.apiSecret)
-        )
-      );
-      const allOrders = results
-        .filter((r) => r.status === "fulfilled" && Array.isArray(r.value))
-        .flatMap((r) => r.value);
+      const BATCH = 3;
+      const allOrders = [];
+
+      for (let i = 0; i < validSymbols.length; i += BATCH) {
+        const batch = validSymbols.slice(i, i + BATCH);
+        const results = await Promise.allSettled(
+          batch.map((s) =>
+            fetchOrdersForSymbol(s, creds.apiKey, creds.apiSecret)
+          )
+        );
+        for (const r of results) {
+          if (r.status === "fulfilled" && Array.isArray(r.value)) {
+            allOrders.push(...r.value);
+          }
+        }
+        if (i + BATCH < validSymbols.length) {
+          await new Promise((r) => setTimeout(r, 300));
+        }
+      }
 
       // Sort by creation time descending
       allOrders.sort(
