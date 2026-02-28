@@ -171,10 +171,10 @@ export default function PortfolioSummary() {
     (t) => !holdings.find((h) => h.symbol === t)
   );
 
-  // Wallet holdings that have a matching price (tradeable tokens)
-  const priceableWallet = walletHoldings.filter((h) => wazirxPrices[h.symbol]);
-  // Wallet holdings without price data (INR, other non-tradeable)
-  const otherWallet = walletHoldings.filter((h) => !wazirxPrices[h.symbol]);
+  // Wallet holdings: crypto tokens (non-INR) vs fiat/non-tradeable
+  const priceableWallet = walletHoldings.filter((h) => h.symbol !== "INR");
+  // Fiat holdings (INR balance)
+  const fiatWallet = walletHoldings.filter((h) => h.symbol === "INR");
 
   // Overall P/L
   const overallPL = walletTotalInvested > 0
@@ -250,7 +250,7 @@ export default function PortfolioSummary() {
                   </div>
 
                   {/* INR balance row */}
-                  {otherWallet.map((h) => (
+                  {fiatWallet.map((h) => (
                     <div key={h.symbol} className="portfolio-table-row portfolio-row-fiat">
                       <span className="pt-col pt-col-token">
                         <strong>{h.symbol}</strong>
@@ -259,7 +259,7 @@ export default function PortfolioSummary() {
                       <span className="pt-col pt-col-bought">---</span>
                       <span className="pt-col pt-col-current">---</span>
                       <span className="pt-col pt-col-value">
-                        {h.symbol === "INR" ? `₹${h.amount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}` : `${h.amount}`}
+                        {`₹${h.amount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`}
                       </span>
                       <span className="pt-col pt-col-pl">---</span>
                     </div>
@@ -268,10 +268,10 @@ export default function PortfolioSummary() {
                   {/* Crypto tokens */}
                   {priceableWallet.map((h) => {
                     const p = wazirxPrices[h.symbol];
-                    const currentPrice = p ? p.priceInr : 0;
-                    const valInr = h.amount * currentPrice;
+                    const currentPrice = p ? p.priceInr : null;
+                    const valInr = currentPrice ? h.amount * currentPrice : null;
                     const avgBuyPrice = h.avgBuyPrice || null;
-                    const tokenPL = avgBuyPrice && avgBuyPrice > 0
+                    const tokenPL = avgBuyPrice && avgBuyPrice > 0 && currentPrice
                       ? ((currentPrice - avgBuyPrice) / avgBuyPrice) * 100
                       : null;
                     const plClass = tokenPL !== null
@@ -293,10 +293,10 @@ export default function PortfolioSummary() {
                           {avgBuyPrice ? formatPrice(avgBuyPrice) : "---"}
                         </span>
                         <span className="pt-col pt-col-current">
-                          {formatPrice(currentPrice)}
+                          {currentPrice ? formatPrice(currentPrice) : "---"}
                         </span>
                         <span className="pt-col pt-col-value">
-                          {formatValue(valInr)}
+                          {valInr ? formatValue(valInr) : "---"}
                         </span>
                         <span className={`pt-col pt-col-pl ${plClass}`}>
                           {tokenPL !== null

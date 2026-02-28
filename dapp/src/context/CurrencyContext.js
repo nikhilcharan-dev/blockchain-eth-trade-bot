@@ -54,38 +54,37 @@ export function CurrencyProvider({ children }) {
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch WazirX prices (all INR pairs)
+  // Fetch WazirX prices (all INR pairs from tickers)
   const fetchPrices = useCallback(async () => {
     try {
       const resp = await fetch(WAZIRX_TICKERS_URL);
       if (!resp.ok) return;
 
       const data = await resp.json();
-      const pairMap = {};
-      for (const ticker of data) {
-        pairMap[ticker.symbol] = ticker;
-      }
-
       const prices = {};
-      for (const { symbol, pair } of SUPPORTED_PAIRS) {
-        const ticker = pairMap[pair];
-        if (ticker) {
-          const lastPrice = parseFloat(ticker.lastPrice);
-          const openPrice = parseFloat(ticker.openPrice);
-          const vol = parseFloat(ticker.volume);
-          const change = openPrice > 0 ? ((lastPrice - openPrice) / openPrice) * 100 : 0;
 
-          prices[symbol] = {
-            priceInr: lastPrice,
-            highInr: parseFloat(ticker.highPrice),
-            lowInr: parseFloat(ticker.lowPrice),
-            volume: vol,
-            quoteVolumeInr: vol * lastPrice,
-            change,
-            bidPriceInr: parseFloat(ticker.bidPrice),
-            askPriceInr: parseFloat(ticker.askPrice),
-          };
-        }
+      for (const ticker of data) {
+        const sym = ticker.symbol || "";
+        if (!sym.endsWith("inr")) continue;
+
+        const symbol = sym.slice(0, -3).toUpperCase();
+        const lastPrice = parseFloat(ticker.lastPrice);
+        if (!lastPrice || isNaN(lastPrice)) continue;
+
+        const openPrice = parseFloat(ticker.openPrice);
+        const vol = parseFloat(ticker.volume);
+        const change = openPrice > 0 ? ((lastPrice - openPrice) / openPrice) * 100 : 0;
+
+        prices[symbol] = {
+          priceInr: lastPrice,
+          highInr: parseFloat(ticker.highPrice),
+          lowInr: parseFloat(ticker.lowPrice),
+          volume: vol,
+          quoteVolumeInr: vol * lastPrice,
+          change,
+          bidPriceInr: parseFloat(ticker.bidPrice),
+          askPriceInr: parseFloat(ticker.askPrice),
+        };
       }
 
       setWazirxPrices(prices);
