@@ -27,7 +27,7 @@
 }
 
 .exchange-title {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 700;
   color: #fff;
 }
@@ -54,7 +54,7 @@
 }
 
 .exchange-subtitle {
-  font-size: 13px;
+  font-size: 14px;
   color: rgba(255, 255, 255, 0.4);
 }
 
@@ -82,7 +82,7 @@
   color: #fff;
   padding: 10px 14px;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 15px;
   outline: none;
   transition: border-color 0.2s;
 }
@@ -158,7 +158,7 @@
   background: none;
   border: none;
   color: rgba(255, 255, 255, 0.45);
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 500;
   padding: 8px 16px;
   border-radius: 8px;
@@ -193,7 +193,7 @@
 }
 
 .exchange-prices-header h3 {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
   color: #fff;
 }
@@ -267,14 +267,14 @@
 }
 
 .ep-col {
-  font-size: 13px;
+  font-size: 15px;
   color: rgba(255, 255, 255, 0.8);
   font-variant-numeric: tabular-nums;
 }
 
 .ep-col-name strong {
   color: #fff;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .ep-pair {
@@ -381,7 +381,7 @@
 }
 
 .trade-total {
-  font-size: 14px;
+  font-size: 16px;
   color: rgba(255, 255, 255, 0.6);
   padding: 8px 12px;
   background: rgba(255, 255, 255, 0.03);
@@ -412,7 +412,7 @@
   padding: 12px 24px;
   border: none;
   border-radius: 10px;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   cursor: pointer;
   transition: opacity 0.2s;
@@ -516,7 +516,7 @@
 }
 
 .token-group-name {
-  font-size: 15px;
+  font-size: 17px;
   color: #fff;
 }
 
@@ -559,7 +559,7 @@
 }
 
 .token-summary-value {
-  font-size: 13px;
+  font-size: 15px;
   color: rgba(255, 255, 255, 0.8);
   font-variant-numeric: tabular-nums;
 }
@@ -643,7 +643,7 @@
 }
 
 .order-detail {
-  font-size: 13px;
+  font-size: 15px;
   color: rgba(255, 255, 255, 0.7);
   font-variant-numeric: tabular-nums;
 }
@@ -671,7 +671,7 @@
 }
 
 .order-pl {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;

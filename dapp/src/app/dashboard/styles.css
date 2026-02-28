@@ -26,7 +26,7 @@
 }
 
 .nav-logo {
-  font-size: 20px;
+  font-size: 22px;
   background: linear-gradient(135deg, #a5b4fc, #6366f1);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -42,7 +42,7 @@
   background: none;
   border: none;
   color: rgba(255, 255, 255, 0.45);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
   padding: 8px 16px;
   border-radius: 8px;
@@ -73,20 +73,20 @@
 }
 
 .nav-avatar {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   background: linear-gradient(135deg, #6366f1, #8b5cf6);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 15px;
   color: #fff;
 }
 
 .nav-username {
-  font-size: 14px;
+  font-size: 15px;
   color: rgba(255, 255, 255, 0.7);
   font-weight: 500;
 }
@@ -97,7 +97,7 @@
   border: 1px solid rgba(255, 82, 82, 0.2);
   padding: 6px 14px;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
@@ -120,7 +120,7 @@
 }
 
 .currency-option {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   padding: 5px 10px;
   border-radius: 6px;
@@ -155,7 +155,7 @@
 
 .footer-brand {
   font-weight: 700;
-  font-size: 14px;
+  font-size: 15px;
   background: linear-gradient(135deg, #a5b4fc, #6366f1);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -163,13 +163,13 @@
 }
 
 .footer-text {
-  font-size: 13px;
+  font-size: 14px;
   color: rgba(255, 255, 255, 0.3);
 }
 
 .footer-divider {
   color: rgba(255, 255, 255, 0.1);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 /* ===== ACCOUNT PANEL ===== */
@@ -201,20 +201,20 @@
   align-items: center;
   justify-content: center;
   font-weight: 800;
-  font-size: 22px;
+  font-size: 24px;
   color: #fff;
   flex-shrink: 0;
 }
 
 .account-username {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 700;
   color: #fff;
   margin: 0;
 }
 
 .account-role {
-  font-size: 12px;
+  font-size: 14px;
   color: rgba(255, 255, 255, 0.4);
 }
 
@@ -233,7 +233,7 @@
 }
 
 .account-section-header h3 {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
   color: #fff;
   margin: 0;
@@ -245,7 +245,7 @@
   color: rgba(255, 255, 255, 0.5);
   padding: 5px 14px;
   border-radius: 8px;
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -261,7 +261,7 @@
 }
 
 .account-empty {
-  font-size: 13px;
+  font-size: 15px;
   color: rgba(255, 255, 255, 0.35);
 }
 
@@ -298,13 +298,13 @@
 }
 
 .account-login-browser {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.85);
 }
 
 .account-login-device {
-  font-size: 11px;
+  font-size: 13px;
   color: rgba(255, 255, 255, 0.35);
   padding: 2px 8px;
   background: rgba(255, 255, 255, 0.05);
@@ -312,7 +312,7 @@
 }
 
 .account-login-badge {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   color: #00e676;
   padding: 2px 8px;
@@ -328,13 +328,13 @@
 }
 
 .account-login-ip {
-  font-size: 12px;
+  font-size: 14px;
   color: rgba(255, 255, 255, 0.4);
   font-family: "SF Mono", "Fira Code", monospace;
 }
 
 .account-login-time {
-  font-size: 12px;
+  font-size: 14px;
   color: rgba(255, 255, 255, 0.3);
 }
 
@@ -354,7 +354,7 @@
   }
 
   .nav-logo {
-    font-size: 17px;
+    font-size: 19px;
     white-space: nowrap;
   }
 
@@ -371,7 +371,7 @@
   }
 
   .nav-tab {
-    font-size: 12px;
+    font-size: 13px;
     padding: 6px 10px;
     white-space: nowrap;
   }
@@ -387,18 +387,18 @@
   }
 
   .nav-avatar {
-    width: 28px;
-    height: 28px;
-    font-size: 12px;
+    width: 30px;
+    height: 30px;
+    font-size: 13px;
   }
 
   .nav-logout-btn {
     padding: 5px 10px;
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .currency-option {
-    font-size: 11px;
+    font-size: 12px;
     padding: 4px 8px;
   }
 
@@ -425,12 +425,12 @@
   }
 
   .footer-brand {
-    font-size: 12px;
+    font-size: 13px;
   }
 
   .footer-text,
   .footer-divider {
-    font-size: 11px;
+    font-size: 12px;
   }
 }
 
@@ -441,7 +441,7 @@
   }
 
   .nav-tab {
-    font-size: 11px;
+    font-size: 12px;
     padding: 5px 8px;
   }
 }

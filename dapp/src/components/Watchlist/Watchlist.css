@@ -16,7 +16,7 @@
 }
 
 .watchlist-header h2 {
-  font-size: 20px;
+  font-size: 22px;
   color: #fff;
 }
 
@@ -88,7 +88,7 @@
 }
 
 .watchlist-row-header .wl-col {
-  font-size: 11px;
+  font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 0.8px;
   color: rgba(255, 255, 255, 0.35);
@@ -96,7 +96,7 @@
 }
 
 .wl-col {
-  font-size: 14px;
+  font-size: 16px;
   color: rgba(255, 255, 255, 0.8);
   font-variant-numeric: tabular-nums;
 }
@@ -122,12 +122,12 @@
 }
 
 .wl-col-hl {
-  font-size: 12px;
+  font-size: 14px;
   color: rgba(255, 255, 255, 0.5);
 }
 
 .wl-col-vol {
-  font-size: 13px;
+  font-size: 15px;
   color: rgba(255, 255, 255, 0.5);
 }
 

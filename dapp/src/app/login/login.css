@@ -59,7 +59,7 @@
   border-radius: 8px;
   background: transparent;
   color: rgba(255, 255, 255, 0.4);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
@@ -75,7 +75,7 @@
 }
 
 .login-subtitle {
-  font-size: 14px;
+  font-size: 15px;
   color: rgba(255, 255, 255, 0.4);
   margin-bottom: 28px;
 }
@@ -93,7 +93,7 @@
 }
 
 .login-field label {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.6);
   letter-spacing: 0.3px;
@@ -132,7 +132,7 @@
   padding: 12px;
   border: none;
   border-radius: 10px;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
