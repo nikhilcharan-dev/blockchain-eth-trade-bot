@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Line } from "react-chartjs-2";
 import {
     Chart as ChartJS,
@@ -16,20 +16,22 @@ import './styles.css'
 
 ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Tooltip, Legend, Filler);
 
+const WAZIRX_WS_URL = "wss://stream.wazirx.com/stream";
+const WAZIRX_TICKER_URL = "https://api.wazirx.com/sapi/v1/ticker/24hr";
+
 export default function MainChart() {
 
-    // PRICE MODE (USD / INR)
-    const [mode, setMode] = useState("USD");
-    const [usdToInr, setUsdToInr] = useState(1);
+    // PRICE MODE (INR / USD)
+    const [mode, setMode] = useState("INR");
+    const [usdToInr, setUsdToInr] = useState(83.5);
 
     useEffect(() => {
         async function fetchRate() {
             try {
                 const resp = await fetch("https://open.er-api.com/v6/latest/USD");
                 const json = await resp.json();
-                if (json && json.rates && json.rates.INR) {
+                if (json?.rates?.INR) {
                     setUsdToInr(json.rates.INR);
-                    console.log(json.rates.INR);
                 }
             } catch (err) {
                 console.error("Error fetching FX rate", err);
@@ -37,23 +39,24 @@ export default function MainChart() {
         }
 
         fetchRate();
-        const interval = setInterval(fetchRate, 10*60*1000); // refresh every 10 min
+        const interval = setInterval(fetchRate, 10 * 60 * 1000);
         return () => clearInterval(interval);
     }, []);
 
+    // Convert from INR (WazirX native) to display currency
+    const convert = (inr) => (mode === "USD" ? inr / usdToInr : inr);
 
-    const convert = (usd) => (mode === "INR" ? usd * usdToInr : usd);
-
-    // ETH LIVE PRICE (RAW USD)
+    // ETH LIVE PRICE (RAW INR from WazirX)
     const [ethPriceRaw, setEthPriceRaw] = useState([]);
     const [ethTime, setEthTime] = useState([]);
 
     const ethWS = useRef(null);
     const ethLastUpdate = useRef(Date.now());
+    const fallbackInterval = useRef(null);
 
     const formatTime = () => new Date().toLocaleTimeString();
 
-    // BUY POINTS
+    // BUY POINTS (stored in INR internally)
     const [buyPoints, setBuyPoints] = useState([]);
 
     const [newBuyName, setNewBuyName] = useState("");
@@ -62,8 +65,11 @@ export default function MainChart() {
     const addBuy = () => {
         if (!newBuyName || !newBuyPrice) return;
 
-        const price = parseFloat(newBuyPrice); // stored in USD
+        const price = parseFloat(newBuyPrice);
         if (isNaN(price)) return;
+
+        // Convert to INR for storage if entered in USD mode
+        const inrPrice = mode === "USD" ? price * usdToInr : price;
 
         const lastTime = ethTime[ethTime.length - 1] || formatTime();
 
@@ -72,7 +78,7 @@ export default function MainChart() {
             {
                 id: Date.now(),
                 name: newBuyName,
-                usdPrice: price, // store buy in USD
+                inrPrice: inrPrice,
                 time: lastTime,
             },
         ]);
@@ -92,25 +98,77 @@ export default function MainChart() {
         setIsSidebarOpen((prev) => !prev);
     };
 
-    // ETH WEBSOCKET
-    useEffect(() => {
-        ethWS.current = new WebSocket("wss://stream.binance.com:9443/ws/ethusdt@trade");
+    // WazirX REST API fallback
+    const fetchEthPrice = useCallback(async () => {
+        try {
+            const resp = await fetch(`${WAZIRX_TICKER_URL}?symbol=ethinr`);
+            if (!resp.ok) return;
+            const data = await resp.json();
+            const priceINR = parseFloat(data.lastPrice);
+            if (isNaN(priceINR)) return;
 
-        ethWS.current.onmessage = (msg) => {
-            const data = JSON.parse(msg.data);
-            const priceUSD = parseFloat(data.p);
             const now = Date.now();
-
             if (now - ethLastUpdate.current >= 1000) {
                 ethLastUpdate.current = now;
-
-                setEthPriceRaw((prev) => [...prev.slice(-30), priceUSD]);
+                setEthPriceRaw((prev) => [...prev.slice(-30), priceINR]);
                 setEthTime((prev) => [...prev.slice(-30), formatTime()]);
             }
-        };
-
-        return () => ethWS.current && ethWS.current.close();
+        } catch (err) {
+            console.error("WazirX REST fallback error:", err);
+        }
     }, []);
+
+    // WazirX WebSocket + REST fallback
+    useEffect(() => {
+        try {
+            ethWS.current = new WebSocket(WAZIRX_WS_URL);
+
+            ethWS.current.onopen = () => {
+                ethWS.current.send(JSON.stringify({
+                    event: "subscribe",
+                    streams: ["ethinr@ticker"]
+                }));
+            };
+
+            ethWS.current.onmessage = (msg) => {
+                const parsed = JSON.parse(msg.data);
+                if (!parsed.data || !parsed.stream) return;
+
+                const priceINR = parseFloat(parsed.data.c);
+                if (isNaN(priceINR)) return;
+
+                const now = Date.now();
+                if (now - ethLastUpdate.current >= 1000) {
+                    ethLastUpdate.current = now;
+                    setEthPriceRaw((prev) => [...prev.slice(-30), priceINR]);
+                    setEthTime((prev) => [...prev.slice(-30), formatTime()]);
+                }
+            };
+
+            ethWS.current.onerror = () => {
+                console.warn("WazirX WebSocket error, falling back to REST polling");
+                if (!fallbackInterval.current) {
+                    fallbackInterval.current = setInterval(fetchEthPrice, 2000);
+                }
+            };
+
+            ethWS.current.onclose = () => {
+                if (!fallbackInterval.current) {
+                    fallbackInterval.current = setInterval(fetchEthPrice, 2000);
+                }
+            };
+        } catch {
+            fallbackInterval.current = setInterval(fetchEthPrice, 2000);
+        }
+
+        return () => {
+            ethWS.current?.close();
+            if (fallbackInterval.current) {
+                clearInterval(fallbackInterval.current);
+                fallbackInterval.current = null;
+            }
+        };
+    }, [fetchEthPrice]);
 
     // Convert all ETH prices into selected mode
     const ethPrice = ethPriceRaw.map((p) => convert(p));
@@ -119,8 +177,8 @@ export default function MainChart() {
     const colors = ["#ff6347", "#ffa500", "#32cd32", "#00bfff", "#8a2be2", "#ff69b4"];
 
     const buyLineDatasets = buyPoints.map((b, index) => ({
-        label: `${b.name} (Buy @ ${convert(b.usdPrice).toFixed(2)} ${mode})`,
-        data: Array(ethPrice.length).fill(convert(b.usdPrice)),
+        label: `${b.name} (Buy @ ${convert(b.inrPrice).toFixed(2)} ${mode})`,
+        data: Array(ethPrice.length).fill(convert(b.inrPrice)),
         borderColor: colors[index % colors.length],
         borderDash: [6, 6],
         tension: 0,
@@ -132,12 +190,14 @@ export default function MainChart() {
         data: [
             {
                 x: b.time,
-                y: convert(b.usdPrice),
+                y: convert(b.inrPrice),
             },
         ],
         backgroundColor: colors[index % colors.length],
         pointRadius: 6,
     }));
+
+    const currencySymbol = mode === "INR" ? "₹" : "$";
 
     return (
         <div className="eth-chart">
@@ -152,15 +212,18 @@ export default function MainChart() {
 
             {/* ==================== CHART ==================== */}
             <div className="eth-chart-container">
-                <h2>ETH Live Price Chart ({mode})</h2>
+                <div className="main-chart-title-row">
+                    <h2>ETH Live Price Chart ({mode})</h2>
+                    <span className="wazirx-badge">WazirX</span>
+                </div>
 
-                {/* USD / INR Switch */}
+                {/* INR / USD Switch */}
                 <select
                     value={mode}
                     onChange={(e) => setMode(e.target.value)}
                 >
-                    <option value="USD">USD</option>
                     <option value="INR">INR</option>
+                    <option value="USD">USD</option>
                 </select>
 
                 <div style={{ height: "400px", width: "100%" }}>
@@ -227,7 +290,7 @@ export default function MainChart() {
 
                         <input
                             type="number"
-                            placeholder="Buy price in USD"
+                            placeholder={`Buy price in ${mode}`}
                             value={newBuyPrice}
                             onChange={(e) => setNewBuyPrice(e.target.value)}
                         />
@@ -241,7 +304,7 @@ export default function MainChart() {
                         <table className="trade-table">
                             <tbody>
                             {buyPoints.map((b, index) => {
-                                const buy = convert(b.usdPrice);
+                                const buy = convert(b.inrPrice);
                                 const current = ethPrice[ethPrice.length - 1] || buy;
 
                                 const pnl = current - buy;
@@ -260,7 +323,7 @@ export default function MainChart() {
                                             {b.name}
                                         </td>
 
-                                        <td className="trade-cell">@ {buy.toFixed(2)}</td>
+                                        <td className="trade-cell">@ {currencySymbol}{buy.toFixed(2)}</td>
 
                                         <td className={`trade-cell ${pnlClass}`}>
                                             {pnl.toFixed(2)} ({pnlPercent.toFixed(2)}%)
