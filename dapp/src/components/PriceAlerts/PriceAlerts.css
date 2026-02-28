@@ -16,7 +16,7 @@
 }
 
 .pa-title {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
   color: #fff;
   margin: 0;
@@ -53,7 +53,7 @@
   color: #fff;
   padding: 8px 12px;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 15px;
   outline: none;
 }
 
@@ -115,16 +115,16 @@
 
 .pa-alert-info strong {
   color: #fff;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .pa-alert-condition {
-  font-size: 13px;
+  font-size: 15px;
   color: rgba(255, 255, 255, 0.6);
 }
 
 .pa-alert-current {
-  font-size: 12px;
+  font-size: 14px;
   color: rgba(255, 255, 255, 0.35);
 }
 

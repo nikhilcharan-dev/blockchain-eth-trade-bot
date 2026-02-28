@@ -33,7 +33,7 @@
 }
 
 .eth-chart-container h2 {
-  font-size: 20px;
+  font-size: 22px;
   color: #fff;
   margin-bottom: 12px;
 }
@@ -71,7 +71,7 @@
 }
 
 .eth-chart-sidebar h3 {
-  font-size: 16px;
+  font-size: 18px;
   color: rgba(255, 255, 255, 0.9);
   margin-bottom: 12px;
 }
@@ -210,7 +210,7 @@
 }
 
 .multi-chart-header h2 {
-  font-size: 20px;
+  font-size: 22px;
   color: #fff;
   margin-bottom: 12px;
 }
@@ -342,7 +342,7 @@
 }
 
 .candlestick-header h2 {
-  font-size: 20px;
+  font-size: 22px;
   color: #fff;
   margin: 0;
 }

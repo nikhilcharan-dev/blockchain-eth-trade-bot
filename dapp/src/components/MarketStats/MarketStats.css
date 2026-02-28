@@ -24,7 +24,7 @@
 }
 
 .stat-card-header {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
   color: rgba(255, 255, 255, 0.9);
   margin-bottom: 16px;
@@ -40,12 +40,12 @@
 }
 
 .stat-label {
-  font-size: 13px;
+  font-size: 15px;
   color: rgba(255, 255, 255, 0.4);
 }
 
 .stat-value {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.85);
   font-variant-numeric: tabular-nums;
@@ -102,13 +102,13 @@
 }
 
 .fear-greed-score {
-  font-size: 36px;
+  font-size: 40px;
   font-weight: 700;
   color: #fff;
 }
 
 .fear-greed-label {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1px;

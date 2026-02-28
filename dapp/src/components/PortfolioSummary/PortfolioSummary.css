@@ -27,7 +27,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   padding: 6px 14px;
   border-radius: 20px;
@@ -144,21 +144,21 @@
 }
 
 .portfolio-label {
-  font-size: 13px;
+  font-size: 14px;
   color: rgba(255, 255, 255, 0.5);
   text-transform: uppercase;
   letter-spacing: 1px;
 }
 
 .portfolio-value {
-  font-size: 32px;
+  font-size: 36px;
   font-weight: 700;
   color: #fff;
   font-variant-numeric: tabular-nums;
 }
 
 .portfolio-change {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
 }
 
@@ -175,7 +175,7 @@
 }
 
 .portfolio-label-sm {
-  font-size: 12px;
+  font-size: 13px;
   color: rgba(255, 255, 255, 0.4);
 }
 
@@ -220,7 +220,7 @@
 }
 
 .donut-legend-label {
-  font-size: 12px;
+  font-size: 14px;
   color: rgba(255, 255, 255, 0.6);
   font-weight: 500;
 }
@@ -323,7 +323,7 @@
   grid-template-columns: 1fr 1fr 0.6fr 1fr 1fr 1fr 0.8fr;
   gap: 8px;
   padding: 10px 16px;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.4);
   text-transform: uppercase;
@@ -369,7 +369,7 @@
 }
 
 .pt-col {
-  font-size: 13px;
+  font-size: 15px;
   color: rgba(255, 255, 255, 0.7);
   font-variant-numeric: tabular-nums;
 }
@@ -382,7 +382,7 @@
 
 .pt-col-token strong {
   color: #fff;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .pt-col-pl {
@@ -543,14 +543,14 @@
 }
 
 .drawer-stat-label {
-  font-size: 11px;
+  font-size: 13px;
   color: rgba(255, 255, 255, 0.35);
   text-transform: uppercase;
   letter-spacing: 0.3px;
 }
 
 .drawer-stat-value {
-  font-size: 14px;
+  font-size: 16px;
   color: rgba(255, 255, 255, 0.85);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
