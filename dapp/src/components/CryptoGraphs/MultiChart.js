@@ -84,15 +84,16 @@ export default function MultiChart() {
             tokenWS.current.onopen = () => {
                 tokenWS.current.send(JSON.stringify({
                     event: "subscribe",
-                    streams: [`${symbol}@ticker`]
+                    streams: [`${symbol}@trades`]
                 }));
             };
 
             tokenWS.current.onmessage = (msg) => {
                 const parsed = JSON.parse(msg.data);
-                if (!parsed.data || !parsed.stream) return;
+                if (!parsed.data?.trades?.length) return;
 
-                const price = parseFloat(parsed.data.c);
+                const latestTrade = parsed.data.trades[parsed.data.trades.length - 1];
+                const price = parseFloat(latestTrade.p);
                 if (isNaN(price)) return;
 
                 const now = Date.now();
