@@ -6,8 +6,10 @@ import gsap from 'gsap'
 import { CurrencyProvider, useCurrency } from "@/context/CurrencyContext"
 import PriceTicker from "@/components/PriceTicker/PriceTicker"
 import PortfolioSummary from "@/components/PortfolioSummary/PortfolioSummary"
+import PriceAlerts from "@/components/PriceAlerts/PriceAlerts"
 import MainChart from "@/components/CryptoGraphs/MainChart"
 import MultiChart from "@/components/CryptoGraphs/MultiChart"
+import CandlestickChart from "@/components/CryptoGraphs/CandlestickChart"
 import Watchlist from "@/components/Watchlist/Watchlist"
 import MarketStats from "@/components/MarketStats/MarketStats"
 import ExchangeConnect from "@/components/ExchangeConnect/ExchangeConnect"
@@ -81,6 +83,7 @@ function DashboardContent() {
         {activeTab === 'overview' && (
           <>
             <PortfolioSummary />
+            <PriceAlerts />
             <MarketStats />
             <Watchlist />
           </>
@@ -88,6 +91,7 @@ function DashboardContent() {
 
         {activeTab === 'trade' && (
           <>
+            <CandlestickChart />
             <MainChart />
             <MultiChart />
           </>

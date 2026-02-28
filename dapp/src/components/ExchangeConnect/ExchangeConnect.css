@@ -327,6 +327,127 @@
   color: #ffd54f;
 }
 
+/* Sortable header columns */
+.ep-sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.15s;
+}
+
+.ep-sortable:hover {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* ═══ Trade Form ═══ */
+.trade-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.trade-form-row {
+  display: flex;
+  gap: 12px;
+}
+
+.trade-form-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.trade-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.trade-side-toggle {
+  display: flex;
+  gap: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.trade-side-btn {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.trade-side-active-buy {
+  background: rgba(0, 230, 118, 0.15);
+  color: #00e676;
+}
+
+.trade-side-active-sell {
+  background: rgba(255, 82, 82, 0.15);
+  color: #ff5252;
+}
+
+.trade-total {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.trade-submit-btn {
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.trade-submit-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.trade-submit-buy {
+  background: linear-gradient(135deg, #00c853, #00e676);
+  color: #000;
+}
+
+.trade-submit-sell {
+  background: linear-gradient(135deg, #d50000, #ff5252);
+  color: #fff;
+}
+
+.trade-result {
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.trade-result-ok {
+  background: rgba(0, 230, 118, 0.08);
+  border: 1px solid rgba(0, 230, 118, 0.15);
+  color: #00e676;
+}
+
+.trade-result-err {
+  background: rgba(255, 82, 82, 0.08);
+  border: 1px solid rgba(255, 82, 82, 0.15);
+  color: #ff8a80;
+}
+
 @media (max-width: 768px) {
   .exchange-connect {
     padding: 12px;
@@ -388,6 +509,10 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
+  }
+
+  .trade-form-row {
+    flex-direction: column;
   }
 }
 

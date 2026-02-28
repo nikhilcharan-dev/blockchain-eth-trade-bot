@@ -1,0 +1,226 @@
+.price-alerts {
+  max-width: 90svw;
+  margin: 20px auto 0;
+  padding: 20px 24px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+}
+
+.pa-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.pa-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+
+.pa-perm-btn {
+  background: rgba(255, 213, 79, 0.1);
+  color: #ffd54f;
+  border: 1px solid rgba(255, 213, 79, 0.25);
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pa-perm-btn:hover {
+  background: rgba(255, 213, 79, 0.2);
+}
+
+.pa-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.pa-select,
+.pa-input {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  outline: none;
+}
+
+.pa-select option {
+  background: #1a1a2e;
+  color: #fff;
+}
+
+.pa-select-sm { width: 90px; }
+
+.pa-input {
+  width: 140px;
+}
+
+.pa-add-btn {
+  background: #6366f1;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.pa-add-btn:hover { background: #4f46e5; }
+
+.pa-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.pa-alert-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  transition: background 0.15s;
+}
+
+.pa-alert-row:hover { background: rgba(255, 255, 255, 0.04); }
+
+.pa-alert-triggered {
+  opacity: 0.5;
+  border-color: rgba(0, 230, 118, 0.15);
+}
+
+.pa-alert-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pa-alert-info strong {
+  color: #fff;
+  font-size: 14px;
+}
+
+.pa-alert-condition {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.pa-alert-current {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.pa-alert-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pa-alert-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(0, 230, 118, 0.12);
+  color: #00e676;
+  text-transform: uppercase;
+}
+
+.pa-remove-btn {
+  background: rgba(255, 82, 82, 0.1);
+  border: 1px solid rgba(255, 82, 82, 0.2);
+  color: #ff5252;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.pa-remove-btn:hover { background: rgba(255, 82, 82, 0.2); }
+
+.pa-empty {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.3);
+  margin: 0;
+}
+
+.pa-log {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 12px;
+}
+
+.pa-log-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.pa-log-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pa-clear-btn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.pa-clear-btn:hover { color: rgba(255, 255, 255, 0.6); }
+
+.pa-log-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.pa-log-row strong {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.pa-log-time {
+  margin-left: auto;
+  color: rgba(255, 255, 255, 0.25);
+  font-size: 11px;
+}
+
+@media (max-width: 768px) {
+  .price-alerts { padding: 14px 16px; margin: 12px auto 0; }
+  .pa-form { flex-direction: column; }
+  .pa-select, .pa-input { width: 100%; }
+  .pa-select-sm { width: 100%; }
+}
