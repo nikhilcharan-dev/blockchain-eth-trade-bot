@@ -23,16 +23,81 @@ async function fetchWazirxFunds(apiKey, apiSecret) {
   return resp.json();
 }
 
-async function fetchOrdersForSymbol(symbol, apiKey, apiSecret) {
-  const params = { symbol, timestamp: Date.now(), recvWindow: 20000 };
-  const { queryString, signature } = signRequest(params, apiSecret);
+const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
-  const resp = await fetch(
-    `${WAZIRX_BASE}/sapi/v1/allOrders?${queryString}&signature=${signature}`,
-    { headers: { "X-Api-Key": apiKey } }
-  );
-  if (!resp.ok) return [];
-  return resp.json();
+async function fetchOrdersWithRetry(symbol, apiKey, apiSecret, retries = 2) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const params = { symbol, timestamp: Date.now(), recvWindow: 20000 };
+      const { queryString, signature } = signRequest(params, apiSecret);
+
+      const resp = await fetch(
+        `${WAZIRX_BASE}/sapi/v1/allOrders?${queryString}&signature=${signature}`,
+        { headers: { "X-Api-Key": apiKey } }
+      );
+
+      if (resp.status === 429) {
+        // Rate limited — wait and retry
+        if (attempt < retries) {
+          await delay(1000 * (attempt + 1));
+          continue;
+        }
+        return [];
+      }
+
+      if (!resp.ok) return [];
+      const data = await resp.json();
+      return Array.isArray(data) ? data : [];
+    } catch {
+      if (attempt < retries) {
+        await delay(500 * (attempt + 1));
+        continue;
+      }
+      return [];
+    }
+  }
+  return [];
+}
+
+function calcAvgBuyPrice(orders) {
+  let totalBuyQty = 0;
+  let totalBuyCost = 0;
+
+  for (const o of orders) {
+    const status = (o.status || "").toLowerCase();
+    const side = (o.side || "").toLowerCase();
+
+    // Accept any completed buy: "done", "filled", "executed", "completed"
+    if (side !== "buy") continue;
+    if (status === "cancel" || status === "cancelled" || status === "wait" || status === "new") continue;
+
+    // Use executedQty first, fall back to origQty for fully filled orders
+    let qty = parseFloat(o.executedQty) || 0;
+    if (qty <= 0) qty = parseFloat(o.origQty) || 0;
+    if (qty <= 0) continue;
+
+    // Try multiple price sources
+    let price = parseFloat(o.price) || 0;
+
+    // For market orders, try avgPrice or cummulativeQuoteQty
+    if (price <= 0) {
+      price = parseFloat(o.avgPrice) || 0;
+    }
+    if (price <= 0) {
+      const cumQuote = parseFloat(o.cummulativeQuoteQty) || parseFloat(o.origQuoteOrderQty) || 0;
+      if (cumQuote > 0) price = cumQuote / qty;
+    }
+
+    if (price > 0) {
+      totalBuyQty += qty;
+      totalBuyCost += qty * price;
+    }
+  }
+
+  if (totalBuyQty > 0) {
+    return { avgBuyPrice: totalBuyCost / totalBuyQty, totalInvested: totalBuyCost };
+  }
+  return null;
 }
 
 export async function POST(request) {
@@ -52,17 +117,34 @@ export async function POST(request) {
       }))
       .filter((f) => f.free + f.locked > 0);
 
-    // 2. For each crypto token (not INR), fetch order history to calculate avg buy price
+    // 2. For each crypto token (not INR), fetch order history in batches to avoid rate limits
     const cryptoHoldings = holdings.filter((h) => h.asset !== "INR");
-    const orderResults = await Promise.allSettled(
-      cryptoHoldings.map((h) =>
-        fetchOrdersForSymbol(
-          `${h.asset.toLowerCase()}inr`,
-          creds.apiKey,
-          creds.apiSecret
+    const BATCH_SIZE = 3;
+    const orderMap = {};
+
+    for (let i = 0; i < cryptoHoldings.length; i += BATCH_SIZE) {
+      const batch = cryptoHoldings.slice(i, i + BATCH_SIZE);
+      const results = await Promise.allSettled(
+        batch.map((h) =>
+          fetchOrdersWithRetry(
+            `${h.asset.toLowerCase()}inr`,
+            creds.apiKey,
+            creds.apiSecret
+          )
         )
-      )
-    );
+      );
+
+      batch.forEach((h, idx) => {
+        if (results[idx]?.status === "fulfilled") {
+          orderMap[h.asset] = results[idx].value;
+        }
+      });
+
+      // Small delay between batches to respect rate limits
+      if (i + BATCH_SIZE < cryptoHoldings.length) {
+        await delay(300);
+      }
+    }
 
     // 3. Calculate average buy price for each token
     const portfolio = holdings.map((h) => {
@@ -71,43 +153,13 @@ export async function POST(request) {
 
       if (h.asset === "INR") return entry;
 
-      const idx = cryptoHoldings.findIndex((c) => c.asset === h.asset);
-      if (idx === -1 || orderResults[idx]?.status !== "fulfilled") return entry;
+      const orders = orderMap[h.asset];
+      if (!orders || !Array.isArray(orders) || orders.length === 0) return entry;
 
-      const orders = orderResults[idx].value;
-      if (!Array.isArray(orders)) return entry;
-
-      // Calculate weighted average buy price from filled buy orders
-      let totalBuyQty = 0;
-      let totalBuyCost = 0;
-
-      for (const o of orders) {
-        const status = (o.status || "").toLowerCase();
-        if (o.side === "buy" && (status === "done" || status === "filled")) {
-          const qty = parseFloat(o.executedQty) || 0;
-          if (qty <= 0) continue;
-
-          // Use explicit price if available (limit orders)
-          let price = parseFloat(o.price) || 0;
-
-          // For market orders (price=0), compute from quote qty
-          if (price <= 0) {
-            const quoteQty = parseFloat(o.origQuoteOrderQty) || 0;
-            if (quoteQty > 0) {
-              price = quoteQty / qty;
-            }
-          }
-
-          if (price > 0) {
-            totalBuyQty += qty;
-            totalBuyCost += qty * price;
-          }
-        }
-      }
-
-      if (totalBuyQty > 0) {
-        entry.avgBuyPrice = totalBuyCost / totalBuyQty;
-        entry.totalInvested = totalBuyCost;
+      const result = calcAvgBuyPrice(orders);
+      if (result) {
+        entry.avgBuyPrice = result.avgBuyPrice;
+        entry.totalInvested = result.totalInvested;
       }
 
       return entry;

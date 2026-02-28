@@ -11,8 +11,8 @@ const AVAILABLE_TOKENS = [
 const STORAGE_KEY = "portfolio_holdings";
 const PL_HISTORY_KEY = "portfolio_pl_history";
 const DONUT_COLORS = [
-  "#6366f1", "#8b5cf6", "#06b6d4", "#10b981", "#f59e0b",
-  "#ef4444", "#ec4899", "#14b8a6", "#f97316", "#84cc16",
+  "#00e5ff", "#ff6d00", "#76ff03", "#d500f9", "#ffea00",
+  "#ff1744", "#00e676", "#2979ff", "#ff9100", "#f50057",
 ];
 
 function loadHoldings() {
@@ -45,7 +45,7 @@ function DonutChart({ segments, size = 140 }) {
       a += sl;
     });
     ctx.beginPath(); ctx.arc(cx, cy, inner - 1, 0, Math.PI * 2);
-    ctx.fillStyle = "#0d0d0d"; ctx.fill();
+    ctx.fillStyle = "#111118"; ctx.fill();
   }, [segments, size]);
   return <canvas ref={ref} style={{ width: size, height: size }} />;
 }
