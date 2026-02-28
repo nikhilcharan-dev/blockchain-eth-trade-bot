@@ -12,6 +12,18 @@ function signRequest(params, secret) {
   return { queryString, signature };
 }
 
+async function fetchOrdersForSymbol(symbol, apiKey, apiSecret) {
+  const params = { symbol, timestamp: Date.now(), recvWindow: 20000 };
+  const { queryString, signature } = signRequest(params, apiSecret);
+
+  const resp = await fetch(
+    `${WAZIRX_BASE}/sapi/v1/allOrders?${queryString}&signature=${signature}`,
+    { headers: { "X-Api-Key": apiKey } }
+  );
+  if (!resp.ok) return [];
+  return resp.json();
+}
+
 export async function POST(request) {
   try {
     const creds = await getWazirxCredentials(request);
@@ -21,36 +33,40 @@ export async function POST(request) {
 
     const body = await request.json();
 
-    const params = {
-      timestamp: Date.now(),
-      recvWindow: 20000,
-    };
-
+    // Single symbol query
     if (body.symbol) {
       if (!SYMBOL_REGEX.test(body.symbol)) {
         return Response.json({ error: "Invalid symbol format" }, { status: 400 });
       }
-      params.symbol = body.symbol;
-    }
-
-    const { queryString, signature } = signRequest(params, creds.apiSecret);
-
-    const resp = await fetch(
-      `${WAZIRX_BASE}/sapi/v1/allOrders?${queryString}&signature=${signature}`,
-      {
-        headers: { "X-Api-Key": creds.apiKey },
-      }
-    );
-
-    if (!resp.ok) {
-      return Response.json(
-        { error: "Failed to fetch orders from WazirX" },
-        { status: resp.status }
+      const orders = await fetchOrdersForSymbol(
+        body.symbol, creds.apiKey, creds.apiSecret
       );
+      return Response.json(Array.isArray(orders) ? orders : []);
     }
 
-    const data = await resp.json();
-    return Response.json(data);
+    // Multi-symbol query: fetch for each provided symbol and merge
+    if (body.symbols && Array.isArray(body.symbols)) {
+      const validSymbols = body.symbols.filter((s) => SYMBOL_REGEX.test(s));
+      const results = await Promise.allSettled(
+        validSymbols.map((s) =>
+          fetchOrdersForSymbol(s, creds.apiKey, creds.apiSecret)
+        )
+      );
+      const allOrders = results
+        .filter((r) => r.status === "fulfilled" && Array.isArray(r.value))
+        .flatMap((r) => r.value);
+
+      // Sort by creation time descending
+      allOrders.sort(
+        (a, b) => (b.createdTime || 0) - (a.createdTime || 0)
+      );
+      return Response.json(allOrders);
+    }
+
+    return Response.json(
+      { error: "Please provide a symbol or symbols array" },
+      { status: 400 }
+    );
   } catch (err) {
     console.error("WazirX orders error:", err);
     return Response.json(

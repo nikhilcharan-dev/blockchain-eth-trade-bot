@@ -37,49 +37,39 @@ export default function PortfolioSummary() {
   const [walletLoading, setWalletLoading] = useState(false);
   const [walletError, setWalletError] = useState(null);
   const [walletTotalValue, setWalletTotalValue] = useState(0);
+  const [walletTotalInvested, setWalletTotalInvested] = useState(0);
   const [walletChange24h, setWalletChange24h] = useState(0);
 
   const { wazirxPrices, formatValue, formatPrice } = useCurrency();
 
-  // Check WazirX connection on mount
+  // Check WazirX connection on mount via server-side settings
   useEffect(() => {
-    const key = localStorage.getItem("wazirx_api_key");
-    const secret = localStorage.getItem("wazirx_api_secret");
-    setWazirxConnected(!!(key && secret));
+    fetch("/api/settings")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.settings?.hasWazirxCredentials) {
+          setWazirxConnected(true);
+        }
+      })
+      .catch(() => {});
   }, []);
 
-  // Fetch WazirX wallet funds
-  const fetchWalletFunds = useCallback(async () => {
-    const apiKey = localStorage.getItem("wazirx_api_key");
-    const apiSecret = localStorage.getItem("wazirx_api_secret");
-    if (!apiKey || !apiSecret) return;
-
+  // Fetch WazirX portfolio (funds + avg buy prices)
+  const fetchWalletPortfolio = useCallback(async () => {
     setWalletLoading(true);
     setWalletError(null);
     try {
-      const resp = await fetch("/api/wazirx/funds", {
+      const resp = await fetch("/api/wazirx/portfolio", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ apiKey, apiSecret }),
+        body: JSON.stringify({}),
       });
       const data = await resp.json();
-      if (!resp.ok) throw new Error(data.error || "Failed to fetch funds");
+      if (!resp.ok) throw new Error(data.error || "Failed to fetch portfolio");
 
-      // Filter tokens with non-zero balance and map to holdings format
-      const tokens = (Array.isArray(data) ? data : [])
-        .map((f) => ({
-          asset: (f.asset || "").toUpperCase(),
-          free: parseFloat(f.free) || 0,
-          locked: parseFloat(f.locked) || 0,
-        }))
-        .filter((f) => f.free + f.locked > 0)
-        .map((f) => ({
-          symbol: f.asset,
-          amount: f.free + f.locked,
-          free: f.free,
-          locked: f.locked,
-        }));
-
+      const tokens = (Array.isArray(data) ? data : []).filter(
+        (t) => t.amount > 0
+      );
       setWalletHoldings(tokens);
     } catch (err) {
       setWalletError(err.message);
@@ -90,8 +80,8 @@ export default function PortfolioSummary() {
 
   // Auto-fetch wallet when connected
   useEffect(() => {
-    if (wazirxConnected) fetchWalletFunds();
-  }, [wazirxConnected, fetchWalletFunds]);
+    if (wazirxConnected) fetchWalletPortfolio();
+  }, [wazirxConnected, fetchWalletPortfolio]);
 
   // Load manual holdings on mount
   useEffect(() => {
@@ -120,11 +110,13 @@ export default function PortfolioSummary() {
   useEffect(() => {
     if (!wazirxConnected || walletHoldings.length === 0) {
       setWalletTotalValue(0);
+      setWalletTotalInvested(0);
       setWalletChange24h(0);
       return;
     }
 
     let totalInr = 0;
+    let totalInvested = 0;
     let weightedChange = 0;
 
     for (const h of walletHoldings) {
@@ -134,9 +126,13 @@ export default function PortfolioSummary() {
         totalInr += val;
         weightedChange += val * (p.change / 100);
       }
+      if (h.totalInvested) {
+        totalInvested += h.totalInvested;
+      }
     }
 
     setWalletTotalValue(totalInr);
+    setWalletTotalInvested(totalInvested);
     setWalletChange24h(totalInr > 0 ? (weightedChange / totalInr) * 100 : 0);
   }, [wazirxPrices, walletHoldings, wazirxConnected]);
 
@@ -180,6 +176,12 @@ export default function PortfolioSummary() {
   // Wallet holdings without price data (INR, other non-tradeable)
   const otherWallet = walletHoldings.filter((h) => !wazirxPrices[h.symbol]);
 
+  // Overall P/L
+  const overallPL = walletTotalInvested > 0
+    ? ((walletTotalValue - walletTotalInvested) / walletTotalInvested) * 100
+    : null;
+  const overallPLClass = overallPL !== null && overallPL >= 0 ? "portfolio-up" : "portfolio-down";
+
   return (
     <div className="portfolio-summary-wrapper">
       {/* === WazirX Wallet Section === */}
@@ -192,7 +194,7 @@ export default function PortfolioSummary() {
             </div>
             <button
               className="portfolio-refresh-btn"
-              onClick={fetchWalletFunds}
+              onClick={fetchWalletPortfolio}
               disabled={walletLoading}
             >
               {walletLoading ? "Loading..." : "Refresh"}
@@ -208,7 +210,7 @@ export default function PortfolioSummary() {
           {!walletError && (
             <div className="portfolio-summary">
               <div className="portfolio-card portfolio-total">
-                <span className="portfolio-label">Wallet Value</span>
+                <span className="portfolio-label">Current Value</span>
                 <span className="portfolio-value">
                   {formatValue(walletTotalValue)}
                 </span>
@@ -218,71 +220,94 @@ export default function PortfolioSummary() {
                     {walletChange24h.toFixed(2)}% (24h)
                   </span>
                 )}
+                {walletTotalInvested > 0 && (
+                  <div className="portfolio-pl-summary">
+                    <span className="portfolio-label-sm">Invested: {formatValue(walletTotalInvested)}</span>
+                    <span className={`portfolio-change ${overallPLClass}`}>
+                      Overall P/L: {overallPL >= 0 ? "+" : ""}{overallPL.toFixed(2)}%
+                      {" "}({formatValue(walletTotalValue - walletTotalInvested)})
+                    </span>
+                  </div>
+                )}
                 {walletLoading && (
-                  <span className="portfolio-loading">Fetching balances...</span>
+                  <span className="portfolio-loading">Fetching portfolio...</span>
                 )}
                 {!walletLoading && walletHoldings.length === 0 && (
                   <span className="portfolio-empty">No tokens in wallet</span>
                 )}
               </div>
 
-              <div className="portfolio-holdings">
-                {/* INR balance */}
-                {otherWallet.map((h) => (
-                  <div key={h.symbol} className="portfolio-holding-card portfolio-holding-fiat">
-                    <div className="holding-header">
-                      <span className="holding-symbol">{h.symbol}</span>
-                      {h.locked > 0 && (
-                        <span className="holding-locked-badge">Locked: {h.locked.toFixed(2)}</span>
-                      )}
-                    </div>
-                    <div className="holding-amount-row">
-                      <span className="holding-amount">{h.free.toFixed(2)} free</span>
-                    </div>
-                    <div className="holding-value">
-                      {h.symbol === "INR" ? `₹${h.amount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}` : `${h.amount}`}
-                    </div>
+              {/* Token table header */}
+              {priceableWallet.length > 0 && (
+                <div className="portfolio-table">
+                  <div className="portfolio-table-header">
+                    <span className="pt-col pt-col-token">Token</span>
+                    <span className="pt-col pt-col-amount">Holdings</span>
+                    <span className="pt-col pt-col-bought">Bought At</span>
+                    <span className="pt-col pt-col-current">Current Price</span>
+                    <span className="pt-col pt-col-value">Value</span>
+                    <span className="pt-col pt-col-pl">P/L %</span>
                   </div>
-                ))}
 
-                {/* Crypto tokens with price */}
-                {priceableWallet.map((h) => {
-                  const p = wazirxPrices[h.symbol];
-                  const valInr = p ? h.amount * p.priceInr : 0;
-                  const pct = walletTotalValue > 0 ? (valInr / walletTotalValue) * 100 : 0;
-                  const tokenChange = p ? p.change : 0;
-                  const tokenChangeClass = tokenChange >= 0 ? "portfolio-up" : "portfolio-down";
+                  {/* INR balance row */}
+                  {otherWallet.map((h) => (
+                    <div key={h.symbol} className="portfolio-table-row portfolio-row-fiat">
+                      <span className="pt-col pt-col-token">
+                        <strong>{h.symbol}</strong>
+                      </span>
+                      <span className="pt-col pt-col-amount">{h.free.toFixed(2)}</span>
+                      <span className="pt-col pt-col-bought">---</span>
+                      <span className="pt-col pt-col-current">---</span>
+                      <span className="pt-col pt-col-value">
+                        {h.symbol === "INR" ? `₹${h.amount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}` : `${h.amount}`}
+                      </span>
+                      <span className="pt-col pt-col-pl">---</span>
+                    </div>
+                  ))}
 
-                  return (
-                    <div key={h.symbol} className="portfolio-holding-card">
-                      <div className="holding-header">
-                        <span className="holding-symbol">{h.symbol}</span>
-                        <span className={`holding-change ${tokenChangeClass}`}>
-                          {tokenChange >= 0 ? "+" : ""}{tokenChange.toFixed(2)}%
+                  {/* Crypto tokens */}
+                  {priceableWallet.map((h) => {
+                    const p = wazirxPrices[h.symbol];
+                    const currentPrice = p ? p.priceInr : 0;
+                    const valInr = h.amount * currentPrice;
+                    const avgBuyPrice = h.avgBuyPrice || null;
+                    const tokenPL = avgBuyPrice && avgBuyPrice > 0
+                      ? ((currentPrice - avgBuyPrice) / avgBuyPrice) * 100
+                      : null;
+                    const plClass = tokenPL !== null
+                      ? (tokenPL >= 0 ? "portfolio-up" : "portfolio-down")
+                      : "";
+
+                    return (
+                      <div key={h.symbol} className="portfolio-table-row">
+                        <span className="pt-col pt-col-token">
+                          <strong>{h.symbol}</strong>
+                          {h.locked > 0 && (
+                            <span className="holding-locked-badge-sm">L:{h.locked}</span>
+                          )}
+                        </span>
+                        <span className="pt-col pt-col-amount">
+                          {h.amount} {h.symbol}
+                        </span>
+                        <span className="pt-col pt-col-bought">
+                          {avgBuyPrice ? formatPrice(avgBuyPrice) : "---"}
+                        </span>
+                        <span className="pt-col pt-col-current">
+                          {formatPrice(currentPrice)}
+                        </span>
+                        <span className="pt-col pt-col-value">
+                          {formatValue(valInr)}
+                        </span>
+                        <span className={`pt-col pt-col-pl ${plClass}`}>
+                          {tokenPL !== null
+                            ? `${tokenPL >= 0 ? "+" : ""}${tokenPL.toFixed(2)}%`
+                            : "---"}
                         </span>
                       </div>
-                      <div className="holding-amount-row">
-                        <span className="holding-amount">{h.amount} {h.symbol}</span>
-                      </div>
-                      {p && (
-                        <div className="holding-rate">
-                          @ {formatPrice(p.priceInr)}/{h.symbol}
-                        </div>
-                      )}
-                      <div className="holding-value">
-                        {formatValue(valInr)}
-                      </div>
-                      <div className="holding-bar-container">
-                        <div
-                          className="holding-bar"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                      <div className="holding-pct">{pct.toFixed(1)}%</div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>

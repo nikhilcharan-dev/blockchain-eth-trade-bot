@@ -31,6 +31,9 @@ export default function ExchangeConnect() {
   // Active sub-tab within exchange
   const [activeSection, setActiveSection] = useState("prices");
 
+  // Order history symbol filter
+  const [orderSymbol, setOrderSymbol] = useState("btcinr");
+
   const [connectLoading, setConnectLoading] = useState(false);
 
   // Check saved connection on mount by checking server-side credentials
@@ -111,14 +114,15 @@ export default function ExchangeConnect() {
     }
   }, []);
 
-  const fetchOrders = useCallback(async () => {
+  const fetchOrders = useCallback(async (symbol) => {
     setAccountLoading(true);
     setAccountError(null);
     try {
+      const sym = symbol || orderSymbol;
       const resp = await fetch("/api/wazirx/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ symbol: sym }),
       });
       const data = await resp.json();
       if (!resp.ok) throw new Error(data.error || "Failed to fetch orders");
@@ -128,7 +132,7 @@ export default function ExchangeConnect() {
     } finally {
       setAccountLoading(false);
     }
-  }, []);
+  }, [orderSymbol]);
 
   const fetchOpenOrders = useCallback(async () => {
     setAccountLoading(true);
@@ -154,9 +158,9 @@ export default function ExchangeConnect() {
     if (!apiConnected) return;
 
     if (activeSection === "balances" && !funds) fetchFunds();
-    if (activeSection === "orders" && !orders) fetchOrders();
+    if (activeSection === "orders") fetchOrders();
     if (activeSection === "open-orders" && !openOrders) fetchOpenOrders();
-  }, [apiConnected, activeSection, funds, orders, openOrders, fetchFunds, fetchOrders, fetchOpenOrders]);
+  }, [apiConnected, activeSection, funds, openOrders, orderSymbol, fetchFunds, fetchOrders, fetchOpenOrders]);
 
   const sections = apiConnected
     ? [
@@ -356,9 +360,26 @@ export default function ExchangeConnect() {
         <div className="exchange-prices-card">
           <div className="exchange-prices-header">
             <h3>Order History</h3>
-            <button className="exchange-refresh-btn" onClick={fetchOrders}>
-              Refresh
-            </button>
+            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <select
+                value={orderSymbol}
+                onChange={(e) => {
+                  setOrderSymbol(e.target.value);
+                  setOrders(null);
+                }}
+                className="exchange-input"
+                style={{ width: "auto", padding: "4px 8px", fontSize: "13px" }}
+              >
+                {SUPPORTED_SYMBOLS.map((s) => (
+                  <option key={s} value={`${s.toLowerCase()}inr`}>
+                    {s}/INR
+                  </option>
+                ))}
+              </select>
+              <button className="exchange-refresh-btn" onClick={() => fetchOrders()}>
+                Refresh
+              </button>
+            </div>
           </div>
 
           {accountLoading && !orders ? (
