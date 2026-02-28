@@ -50,11 +50,58 @@ export default function MainChart() {
     const [ethPriceRaw, setEthPriceRaw] = useState([]);
     const [ethTime, setEthTime] = useState([]);
 
-    const ethWS = useRef(null);
     const ethLastUpdate = useRef(Date.now());
-    const fallbackInterval = useRef(null);
 
-    const formatTime = () => new Date().toLocaleTimeString();
+    // Shared price-point adder with 1-second throttle
+    const addPricePoint = useCallback((priceINR) => {
+        if (isNaN(priceINR)) return;
+        const now = Date.now();
+        if (now - ethLastUpdate.current < 1000) return;
+        ethLastUpdate.current = now;
+        setEthPriceRaw((prev) => [...prev.slice(-30), priceINR]);
+        setEthTime((prev) => [...prev.slice(-30), new Date().toLocaleTimeString()]);
+    }, []);
+
+    // PRIMARY: REST polling every 2 seconds — always active
+    const fetchEthPrice = useCallback(async () => {
+        try {
+            const resp = await fetch(`${WAZIRX_TICKER_URL}?symbol=ethinr`);
+            if (!resp.ok) return;
+            const data = await resp.json();
+            addPricePoint(parseFloat(data.lastPrice));
+        } catch (err) {
+            console.error("WazirX REST error:", err);
+        }
+    }, [addPricePoint]);
+
+    useEffect(() => {
+        fetchEthPrice();
+        const interval = setInterval(fetchEthPrice, 2000);
+        return () => clearInterval(interval);
+    }, [fetchEthPrice]);
+
+    // BONUS: WebSocket for real-time trade updates (fires when trades happen)
+    useEffect(() => {
+        let ws = null;
+        try {
+            ws = new WebSocket(WAZIRX_WS_URL);
+            ws.onopen = () => {
+                ws.send(JSON.stringify({
+                    event: "subscribe",
+                    streams: ["ethinr@trades"]
+                }));
+            };
+            ws.onmessage = (msg) => {
+                const parsed = JSON.parse(msg.data);
+                if (!parsed.data?.trades?.length) return;
+                const latestTrade = parsed.data.trades[parsed.data.trades.length - 1];
+                addPricePoint(parseFloat(latestTrade.p));
+            };
+        } catch {
+            // REST polling handles data delivery
+        }
+        return () => ws?.close();
+    }, [addPricePoint]);
 
     // BUY POINTS (stored in INR internally)
     const [buyPoints, setBuyPoints] = useState([]);
@@ -71,7 +118,7 @@ export default function MainChart() {
         // Convert to INR for storage if entered in USD mode
         const inrPrice = mode === "USD" ? price * usdToInr : price;
 
-        const lastTime = ethTime[ethTime.length - 1] || formatTime();
+        const lastTime = ethTime[ethTime.length - 1] || new Date().toLocaleTimeString();
 
         setBuyPoints((prev) => [
             ...prev,
@@ -97,79 +144,6 @@ export default function MainChart() {
     const toggleSidebar = () => {
         setIsSidebarOpen((prev) => !prev);
     };
-
-    // WazirX REST API fallback
-    const fetchEthPrice = useCallback(async () => {
-        try {
-            const resp = await fetch(`${WAZIRX_TICKER_URL}?symbol=ethinr`);
-            if (!resp.ok) return;
-            const data = await resp.json();
-            const priceINR = parseFloat(data.lastPrice);
-            if (isNaN(priceINR)) return;
-
-            const now = Date.now();
-            if (now - ethLastUpdate.current >= 1000) {
-                ethLastUpdate.current = now;
-                setEthPriceRaw((prev) => [...prev.slice(-30), priceINR]);
-                setEthTime((prev) => [...prev.slice(-30), formatTime()]);
-            }
-        } catch (err) {
-            console.error("WazirX REST fallback error:", err);
-        }
-    }, []);
-
-    // WazirX WebSocket + REST fallback
-    useEffect(() => {
-        try {
-            ethWS.current = new WebSocket(WAZIRX_WS_URL);
-
-            ethWS.current.onopen = () => {
-                ethWS.current.send(JSON.stringify({
-                    event: "subscribe",
-                    streams: ["ethinr@trades"]
-                }));
-            };
-
-            ethWS.current.onmessage = (msg) => {
-                const parsed = JSON.parse(msg.data);
-                if (!parsed.data?.trades?.length) return;
-
-                const latestTrade = parsed.data.trades[parsed.data.trades.length - 1];
-                const priceINR = parseFloat(latestTrade.p);
-                if (isNaN(priceINR)) return;
-
-                const now = Date.now();
-                if (now - ethLastUpdate.current >= 1000) {
-                    ethLastUpdate.current = now;
-                    setEthPriceRaw((prev) => [...prev.slice(-30), priceINR]);
-                    setEthTime((prev) => [...prev.slice(-30), formatTime()]);
-                }
-            };
-
-            ethWS.current.onerror = () => {
-                console.warn("WazirX WebSocket error, falling back to REST polling");
-                if (!fallbackInterval.current) {
-                    fallbackInterval.current = setInterval(fetchEthPrice, 2000);
-                }
-            };
-
-            ethWS.current.onclose = () => {
-                if (!fallbackInterval.current) {
-                    fallbackInterval.current = setInterval(fetchEthPrice, 2000);
-                }
-            };
-        } catch {
-            fallbackInterval.current = setInterval(fetchEthPrice, 2000);
-        }
-
-        return () => {
-            ethWS.current?.close();
-            if (fallbackInterval.current) {
-                clearInterval(fallbackInterval.current);
-                fallbackInterval.current = null;
-            }
-        };
-    }, [fetchEthPrice]);
 
     // Convert all ETH prices into selected mode
     const ethPrice = ethPriceRaw.map((p) => convert(p));

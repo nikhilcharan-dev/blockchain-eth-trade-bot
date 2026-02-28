@@ -31,99 +31,72 @@ export default function MultiChart() {
     const [tokenPrice, setTokenPrice] = useState([]);
     const [tokenTime, setTokenTime] = useState([]);
 
-    const tokenWS = useRef(null);
-    const tokenLastUpdate = useRef(Date.now());
-    const fallbackInterval = useRef(null);
+    const lastUpdate = useRef(Date.now());
 
     const [baseline, setBaseline] = useState("");
     const baselineValue = parseFloat(baseline) || null;
 
-    const formatTime = () => new Date().toLocaleTimeString();
-
-    // WazirX REST API fallback for polling
-    const fetchTokenPrice = useCallback(async (symbol) => {
-        try {
-            const resp = await fetch(`${WAZIRX_TICKER_URL}?symbol=${symbol}`);
-            if (!resp.ok) return;
-            const data = await resp.json();
-            const price = parseFloat(data.lastPrice);
-            if (isNaN(price)) return;
-
-            const now = Date.now();
-            if (now - tokenLastUpdate.current >= 1000) {
-                tokenLastUpdate.current = now;
-                setTokenPrice((prev) => [...prev.slice(-30), price]);
-                setTokenTime((prev) => [...prev.slice(-30), formatTime()]);
-            }
-        } catch (err) {
-            console.error("WazirX REST fallback error:", err);
-        }
+    // Shared price-point adder with 1-second throttle
+    const addPricePoint = useCallback((price) => {
+        if (isNaN(price)) return;
+        const now = Date.now();
+        if (now - lastUpdate.current < 1000) return;
+        lastUpdate.current = now;
+        setTokenPrice((prev) => [...prev.slice(-30), price]);
+        setTokenTime((prev) => [...prev.slice(-30), new Date().toLocaleTimeString()]);
     }, []);
 
-    useEffect(() => {
-        if (tokenWS.current) tokenWS.current.close();
-        if (fallbackInterval.current) {
-            clearInterval(fallbackInterval.current);
-            fallbackInterval.current = null;
-        }
+    // PRIMARY: REST polling every 2 seconds — always active
+    const pollingRef = useRef(null);
+    const wsRef = useRef(null);
 
+    useEffect(() => {
+        // Clear previous state
         setTokenPrice([]);
         setTokenTime([]);
+        lastUpdate.current = 0; // allow immediate first point
 
         const symbol = token.toLowerCase() + "inr";
 
-        const startFallback = () => {
-            if (!fallbackInterval.current) {
-                fallbackInterval.current = setInterval(() => fetchTokenPrice(symbol), 2000);
+        // --- REST polling (primary, guaranteed data) ---
+        const fetchPrice = async () => {
+            try {
+                const resp = await fetch(`${WAZIRX_TICKER_URL}?symbol=${symbol}`);
+                if (!resp.ok) return;
+                const data = await resp.json();
+                addPricePoint(parseFloat(data.lastPrice));
+            } catch (err) {
+                console.error("WazirX REST error:", err);
             }
         };
 
-        try {
-            tokenWS.current = new WebSocket(WAZIRX_WS_URL);
+        fetchPrice(); // immediate first fetch
+        pollingRef.current = setInterval(fetchPrice, 2000);
 
-            tokenWS.current.onopen = () => {
-                tokenWS.current.send(JSON.stringify({
+        // --- WebSocket bonus (real-time when trades happen) ---
+        try {
+            wsRef.current = new WebSocket(WAZIRX_WS_URL);
+            wsRef.current.onopen = () => {
+                wsRef.current.send(JSON.stringify({
                     event: "subscribe",
                     streams: [`${symbol}@trades`]
                 }));
             };
-
-            tokenWS.current.onmessage = (msg) => {
+            wsRef.current.onmessage = (msg) => {
                 const parsed = JSON.parse(msg.data);
                 if (!parsed.data?.trades?.length) return;
-
                 const latestTrade = parsed.data.trades[parsed.data.trades.length - 1];
-                const price = parseFloat(latestTrade.p);
-                if (isNaN(price)) return;
-
-                const now = Date.now();
-                if (now - tokenLastUpdate.current >= 1000) {
-                    tokenLastUpdate.current = now;
-                    setTokenPrice((prev) => [...prev.slice(-30), price]);
-                    setTokenTime((prev) => [...prev.slice(-30), formatTime()]);
-                }
-            };
-
-            tokenWS.current.onerror = () => {
-                console.warn("WazirX WebSocket error, falling back to REST polling");
-                startFallback();
-            };
-
-            tokenWS.current.onclose = () => {
-                startFallback();
+                addPricePoint(parseFloat(latestTrade.p));
             };
         } catch {
-            startFallback();
+            // REST polling handles data delivery
         }
 
         return () => {
-            tokenWS.current?.close();
-            if (fallbackInterval.current) {
-                clearInterval(fallbackInterval.current);
-                fallbackInterval.current = null;
-            }
+            if (pollingRef.current) clearInterval(pollingRef.current);
+            wsRef.current?.close();
         };
-    }, [token, fetchTokenPrice]);
+    }, [token, addPricePoint]);
 
     const makeBaseline = (v, length) => (v ? Array(length).fill(v) : []);
 

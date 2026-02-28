@@ -82,10 +82,23 @@ export async function POST(request) {
       let totalBuyCost = 0;
 
       for (const o of orders) {
-        if (o.side === "buy" && o.status === "done") {
+        const status = (o.status || "").toLowerCase();
+        if (o.side === "buy" && (status === "done" || status === "filled")) {
           const qty = parseFloat(o.executedQty) || 0;
-          const price = parseFloat(o.price) || 0;
-          if (qty > 0 && price > 0) {
+          if (qty <= 0) continue;
+
+          // Use explicit price if available (limit orders)
+          let price = parseFloat(o.price) || 0;
+
+          // For market orders (price=0), compute from quote qty
+          if (price <= 0) {
+            const quoteQty = parseFloat(o.origQuoteOrderQty) || 0;
+            if (quoteQty > 0) {
+              price = quoteQty / qty;
+            }
+          }
+
+          if (price > 0) {
             totalBuyQty += qty;
             totalBuyCost += qty * price;
           }

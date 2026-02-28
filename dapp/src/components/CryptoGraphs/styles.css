@@ -321,6 +321,122 @@
   }
 }
 
+/* ═══ Candlestick Chart ═══ */
+.candlestick-wrapper {
+  max-width: 90svw;
+  margin: 24px auto 12px;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+}
+
+.candlestick-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.candlestick-header h2 {
+  font-size: 20px;
+  color: #fff;
+  margin: 0;
+}
+
+.candlestick-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.candlestick-intervals {
+  display: flex;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 2px;
+}
+
+.candlestick-int-btn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.candlestick-int-btn:hover {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.candlestick-int-active {
+  color: #fff;
+  background: rgba(99, 102, 241, 0.2);
+}
+
+.candlestick-indicators {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.candlestick-ind-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+}
+
+.candlestick-ind-toggle input[type="checkbox"] {
+  accent-color: #6366f1;
+  cursor: pointer;
+}
+
+.candlestick-canvas-wrap {
+  position: relative;
+  width: 100%;
+  height: 460px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.candlestick-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.candlestick-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 14px;
+  z-index: 2;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+@media (max-width: 768px) {
+  .candlestick-wrapper { padding: 16px; margin: 16px auto 8px; }
+  .candlestick-header h2 { font-size: 16px; }
+  .candlestick-canvas-wrap { height: 360px; }
+  .candlestick-controls { flex-wrap: wrap; }
+}
+
 @media (max-width: 480px) {
   .eth-chart {
     padding: 0 8px;
@@ -333,4 +449,7 @@
   .multi-chart-controls {
     flex-direction: column;
   }
+
+  .candlestick-wrapper { padding: 12px; }
+  .candlestick-canvas-wrap { height: 300px; }
 }
