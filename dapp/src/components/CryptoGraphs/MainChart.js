@@ -126,15 +126,16 @@ export default function MainChart() {
             ethWS.current.onopen = () => {
                 ethWS.current.send(JSON.stringify({
                     event: "subscribe",
-                    streams: ["ethinr@ticker"]
+                    streams: ["ethinr@trades"]
                 }));
             };
 
             ethWS.current.onmessage = (msg) => {
                 const parsed = JSON.parse(msg.data);
-                if (!parsed.data || !parsed.stream) return;
+                if (!parsed.data?.trades?.length) return;
 
-                const priceINR = parseFloat(parsed.data.c);
+                const latestTrade = parsed.data.trades[parsed.data.trades.length - 1];
+                const priceINR = parseFloat(latestTrade.p);
                 if (isNaN(priceINR)) return;
 
                 const now = Date.now();
