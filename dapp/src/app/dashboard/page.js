@@ -15,6 +15,7 @@ import MarketStats from "@/components/MarketStats/MarketStats"
 import ExchangeConnect from "@/components/ExchangeConnect/ExchangeConnect"
 import AiChat from "@/components/AiChat/AiChat"
 import AiChatWidget from "@/components/AiChat/AiChatWidget"
+import AutoTradeRange from "@/components/AutoTradeRange/AutoTradeRange"
 import './styles.css'
 
 export default function DashboardPage() {
@@ -64,6 +65,7 @@ function DashboardContent() {
     { id: 'watchlist', label: 'Watchlist' },
     { id: 'markets', label: 'Markets' },
     { id: 'exchange', label: 'WazirX' },
+    ...(!isGuest ? [{ id: 'autoTrade', label: 'Auto Trade' }] : []),
     { id: 'ai', label: 'Trade Bot' },
     ...(!isGuest ? [{ id: 'account', label: 'Account' }] : []),
   ]
@@ -110,6 +112,10 @@ function DashboardContent() {
 
         {activeTab === 'exchange' && (
           <ExchangeConnect />
+        )}
+
+        {activeTab === 'autoTrade' && !isGuest && (
+          <AutoTradeRange />
         )}
 
         {activeTab === 'ai' && (
