@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Line } from "react-chartjs-2";
 import {
     Chart as ChartJS,
@@ -11,36 +11,51 @@ import {
     Tooltip,
     Legend,
     Filler,
-    TimeScale,
 } from "chart.js";
 import { useCurrency } from "@/context/CurrencyContext";
 import './styles.css';
 
-ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Tooltip, Legend, Filler, TimeScale);
+ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Tooltip, Legend, Filler);
 
 const WAZIRX_KLINES_URL = "https://api.wazirx.com/sapi/v1/klines";
 const WAZIRX_TICKER_URL = "https://api.wazirx.com/sapi/v1/ticker/24hr";
 
 const TIMEFRAMES = [
-    { label: "1D",  interval: "15m", limit: 96  },
-    { label: "1W",  interval: "1h",  limit: 168 },
-    { label: "1M",  interval: "4h",  limit: 180 },
-    { label: "3M",  interval: "1d",  limit: 90  },
-    { label: "1Y",  interval: "1d",  limit: 365 },
+    { label: "1D",  interval: "15m", ms: 24 * 60 * 60 * 1000 },
+    { label: "1W",  interval: "1h",  ms: 7 * 24 * 60 * 60 * 1000 },
+    { label: "1M",  interval: "4h",  ms: 30 * 24 * 60 * 60 * 1000 },
+    { label: "3M",  interval: "1d",  ms: 90 * 24 * 60 * 60 * 1000 },
+    { label: "1Y",  interval: "1d",  ms: 365 * 24 * 60 * 60 * 1000 },
 ];
 
 function formatLabel(timestamp, tfLabel) {
     const d = new Date(timestamp);
+    if (isNaN(d.getTime())) return "";
     if (tfLabel === "1D") {
-        return d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+        return d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false });
     }
     if (tfLabel === "1W") {
-        return d.toLocaleDateString("en-IN", { weekday: "short", hour: "2-digit", minute: "2-digit" });
+        return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" }) + " " +
+            d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false });
     }
     if (tfLabel === "1M") {
         return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
     }
-    return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" });
+    if (tfLabel === "3M") {
+        return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
+    }
+    return d.toLocaleDateString("en-IN", { month: "short", year: "2-digit" });
+}
+
+function PulseWaveLoader() {
+    return (
+        <div className="chart-loader">
+            <div className="pulse-wave">
+                <span /><span /><span /><span /><span /><span /><span />
+            </div>
+            <div className="chart-loader-text">Fetching market data...</div>
+        </div>
+    );
 }
 
 export default function MainChart() {
@@ -52,18 +67,20 @@ export default function MainChart() {
     const [loading, setLoading] = useState(true);
     const [livePrice, setLivePrice] = useState(null);
 
-    // Fetch historical kline data
+    // Fetch historical kline data with explicit startTime
     const fetchHistory = useCallback(async () => {
         setLoading(true);
         try {
+            const now = Date.now();
+            const startTime = now - timeframe.ms;
             const r = await fetch(
-                `${WAZIRX_KLINES_URL}?symbol=ethinr&interval=${timeframe.interval}&limit=${timeframe.limit}`
+                `${WAZIRX_KLINES_URL}?symbol=ethinr&interval=${timeframe.interval}&startTime=${startTime}&endTime=${now}&limit=500`
             );
             if (!r.ok) return;
             const data = await r.json();
             if (Array.isArray(data) && data.length > 0) {
-                setPrices(data.map(k => parseFloat(k[4]))); // close price
-                setTimes(data.map(k => k[0])); // timestamp
+                setPrices(data.map(k => parseFloat(k[4])));
+                setTimes(data.map(k => k[0]));
             }
         } catch (err) {
             console.error("Klines fetch error:", err);
@@ -74,13 +91,12 @@ export default function MainChart() {
 
     useEffect(() => { fetchHistory(); }, [fetchHistory]);
 
-    // Auto-refresh kline data every 30s
     useEffect(() => {
         const iv = setInterval(fetchHistory, 30000);
         return () => clearInterval(iv);
     }, [fetchHistory]);
 
-    // Poll live price every 3s for current price display
+    // Poll live price every 3s
     useEffect(() => {
         const fetchLive = async () => {
             try {
@@ -95,7 +111,7 @@ export default function MainChart() {
         return () => clearInterval(iv);
     }, []);
 
-    // BUY POINTS (stored in INR internally)
+    // BUY POINTS
     const [buyPoints, setBuyPoints] = useState([]);
     const [newBuyName, setNewBuyName] = useState("");
     const [newBuyPrice, setNewBuyPrice] = useState("");
@@ -104,33 +120,27 @@ export default function MainChart() {
         if (!newBuyName || !newBuyPrice) return;
         const price = parseFloat(newBuyPrice);
         if (isNaN(price)) return;
-        const inrPrice = currency === "USD" ? price * (1 / convert(1)) : price;
+        const inrPrice = currency === "INR" ? price : price / convert(1);
         setBuyPoints((prev) => [
             ...prev,
-            { id: Date.now(), name: newBuyName, inrPrice: currency === "INR" ? price : price * (prices[prices.length - 1] || 1) / (convert(prices[prices.length - 1]) || 1), time: new Date().toLocaleTimeString() },
+            { id: Date.now(), name: newBuyName, inrPrice },
         ]);
         setNewBuyName("");
         setNewBuyPrice("");
     };
 
-    const deleteBuy = (id) => {
-        setBuyPoints((prev) => prev.filter((b) => b.id !== id));
-    };
+    const deleteBuy = (id) => setBuyPoints((prev) => prev.filter((b) => b.id !== id));
 
-    // SIDEBAR TOGGLE
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-    // Convert prices to display currency
     const displayPrices = prices.map((p) => convert(p));
     const displayLabels = times.map((t) => formatLabel(t, timeframe.label));
 
-    // Compute price change
     const firstPrice = prices[0];
     const lastPrice = prices[prices.length - 1];
     const priceChange = firstPrice && lastPrice ? ((lastPrice - firstPrice) / firstPrice) * 100 : 0;
     const isPositive = priceChange >= 0;
 
-    // Buy line datasets
     const colors = ["#ff6347", "#ffa500", "#32cd32", "#00bfff", "#8a2be2", "#ff69b4"];
     const buyLineDatasets = buyPoints.map((b, index) => ({
         label: `${b.name} (Buy @ ${convert(b.inrPrice).toFixed(2)} ${currency})`,
@@ -157,19 +167,19 @@ export default function MainChart() {
                     <span className="wazirx-badge">WazirX</span>
                 </div>
 
-                {/* Live price + change */}
                 <div className="chart-price-row">
                     {livePrice && (
                         <span className="chart-live-price">
                             {currencySymbol}{convert(livePrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                     )}
-                    <span className={`chart-price-change ${isPositive ? "chart-change-up" : "chart-change-down"}`}>
-                        {isPositive ? "+" : ""}{priceChange.toFixed(2)}%
-                    </span>
+                    {prices.length > 0 && (
+                        <span className={`chart-price-change ${isPositive ? "chart-change-up" : "chart-change-down"}`}>
+                            {isPositive ? "+" : ""}{priceChange.toFixed(2)}%
+                        </span>
+                    )}
                 </div>
 
-                {/* Timeframe buttons */}
                 <div className="chart-timeframe-bar">
                     {TIMEFRAMES.map(tf => (
                         <button
@@ -183,9 +193,7 @@ export default function MainChart() {
                 </div>
 
                 <div style={{ height: "400px", width: "100%", position: "relative" }}>
-                    {loading && displayPrices.length === 0 && (
-                        <div className="candlestick-loading">Loading...</div>
-                    )}
+                    {loading && displayPrices.length === 0 && <PulseWaveLoader />}
                     <Line
                         data={{
                             labels: displayLabels,
@@ -209,10 +217,7 @@ export default function MainChart() {
                         options={{
                             responsive: true,
                             maintainAspectRatio: false,
-                            interaction: {
-                                mode: "index",
-                                intersect: false,
-                            },
+                            interaction: { mode: "index", intersect: false },
                             scales: {
                                 x: {
                                     ticks: {
@@ -269,7 +274,7 @@ export default function MainChart() {
                                 const buy = convert(b.inrPrice);
                                 const current = displayPrices[displayPrices.length - 1] || buy;
                                 const pnl = current - buy;
-                                const pnlPercent = (pnl / buy) * 100;
+                                const pnlPercent = buy ? (pnl / buy) * 100 : 0;
                                 const pnlClass = pnl > 0 ? "pnl-profit" : pnl < 0 ? "pnl-loss" : "pnl-neutral";
 
                                 return (
