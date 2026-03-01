@@ -11,125 +11,104 @@ import {
     Tooltip,
     Legend,
     Filler,
+    TimeScale,
 } from "chart.js";
-import './styles.css'
+import { useCurrency } from "@/context/CurrencyContext";
+import './styles.css';
 
-ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Tooltip, Legend, Filler);
+ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Tooltip, Legend, Filler, TimeScale);
 
-const WAZIRX_WS_URL = "wss://stream.wazirx.com/stream";
+const WAZIRX_KLINES_URL = "https://api.wazirx.com/sapi/v1/klines";
 const WAZIRX_TICKER_URL = "https://api.wazirx.com/sapi/v1/ticker/24hr";
 
+const TIMEFRAMES = [
+    { label: "1D",  interval: "15m", limit: 96  },
+    { label: "1W",  interval: "1h",  limit: 168 },
+    { label: "1M",  interval: "4h",  limit: 180 },
+    { label: "3M",  interval: "1d",  limit: 90  },
+    { label: "1Y",  interval: "1d",  limit: 365 },
+];
+
+function formatLabel(timestamp, tfLabel) {
+    const d = new Date(timestamp);
+    if (tfLabel === "1D") {
+        return d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+    }
+    if (tfLabel === "1W") {
+        return d.toLocaleDateString("en-IN", { weekday: "short", hour: "2-digit", minute: "2-digit" });
+    }
+    if (tfLabel === "1M") {
+        return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
+    }
+    return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" });
+}
+
 export default function MainChart() {
+    const { convert, currencySymbol, currency } = useCurrency();
 
-    // PRICE MODE (INR / USD)
-    const [mode, setMode] = useState("INR");
-    const [usdToInr, setUsdToInr] = useState(83.5);
+    const [timeframe, setTimeframe] = useState(TIMEFRAMES[0]);
+    const [prices, setPrices] = useState([]);
+    const [times, setTimes] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [livePrice, setLivePrice] = useState(null);
 
-    useEffect(() => {
-        async function fetchRate() {
-            try {
-                const resp = await fetch("https://open.er-api.com/v6/latest/USD");
-                const json = await resp.json();
-                if (json?.rates?.INR) {
-                    setUsdToInr(json.rates.INR);
-                }
-            } catch (err) {
-                console.error("Error fetching FX rate", err);
+    // Fetch historical kline data
+    const fetchHistory = useCallback(async () => {
+        setLoading(true);
+        try {
+            const r = await fetch(
+                `${WAZIRX_KLINES_URL}?symbol=ethinr&interval=${timeframe.interval}&limit=${timeframe.limit}`
+            );
+            if (!r.ok) return;
+            const data = await r.json();
+            if (Array.isArray(data) && data.length > 0) {
+                setPrices(data.map(k => parseFloat(k[4]))); // close price
+                setTimes(data.map(k => k[0])); // timestamp
             }
-        }
-
-        fetchRate();
-        const interval = setInterval(fetchRate, 10 * 60 * 1000);
-        return () => clearInterval(interval);
-    }, []);
-
-    // Convert from INR (WazirX native) to display currency
-    const convert = (inr) => (mode === "USD" ? inr / usdToInr : inr);
-
-    // ETH LIVE PRICE (RAW INR from WazirX)
-    const [ethPriceRaw, setEthPriceRaw] = useState([]);
-    const [ethTime, setEthTime] = useState([]);
-
-    const ethLastUpdate = useRef(Date.now());
-
-    // Shared price-point adder with 1-second throttle
-    const addPricePoint = useCallback((priceINR) => {
-        if (isNaN(priceINR)) return;
-        const now = Date.now();
-        if (now - ethLastUpdate.current < 1000) return;
-        ethLastUpdate.current = now;
-        setEthPriceRaw((prev) => [...prev.slice(-30), priceINR]);
-        setEthTime((prev) => [...prev.slice(-30), new Date().toLocaleTimeString()]);
-    }, []);
-
-    // PRIMARY: REST polling every 2 seconds — always active
-    const fetchEthPrice = useCallback(async () => {
-        try {
-            const resp = await fetch(`${WAZIRX_TICKER_URL}?symbol=ethinr`);
-            if (!resp.ok) return;
-            const data = await resp.json();
-            addPricePoint(parseFloat(data.lastPrice));
         } catch (err) {
-            console.error("WazirX REST error:", err);
+            console.error("Klines fetch error:", err);
+        } finally {
+            setLoading(false);
         }
-    }, [addPricePoint]);
+    }, [timeframe]);
 
-    useEffect(() => {
-        fetchEthPrice();
-        const interval = setInterval(fetchEthPrice, 2000);
-        return () => clearInterval(interval);
-    }, [fetchEthPrice]);
+    useEffect(() => { fetchHistory(); }, [fetchHistory]);
 
-    // BONUS: WebSocket for real-time trade updates (fires when trades happen)
+    // Auto-refresh kline data every 30s
     useEffect(() => {
-        let ws = null;
-        try {
-            ws = new WebSocket(WAZIRX_WS_URL);
-            ws.onopen = () => {
-                ws.send(JSON.stringify({
-                    event: "subscribe",
-                    streams: ["ethinr@trades"]
-                }));
-            };
-            ws.onmessage = (msg) => {
-                const parsed = JSON.parse(msg.data);
-                if (!parsed.data?.trades?.length) return;
-                const latestTrade = parsed.data.trades[parsed.data.trades.length - 1];
-                addPricePoint(parseFloat(latestTrade.p));
-            };
-        } catch {
-            // REST polling handles data delivery
-        }
-        return () => ws?.close();
-    }, [addPricePoint]);
+        const iv = setInterval(fetchHistory, 30000);
+        return () => clearInterval(iv);
+    }, [fetchHistory]);
+
+    // Poll live price every 3s for current price display
+    useEffect(() => {
+        const fetchLive = async () => {
+            try {
+                const resp = await fetch(`${WAZIRX_TICKER_URL}?symbol=ethinr`);
+                if (!resp.ok) return;
+                const data = await resp.json();
+                setLivePrice(parseFloat(data.lastPrice));
+            } catch {}
+        };
+        fetchLive();
+        const iv = setInterval(fetchLive, 3000);
+        return () => clearInterval(iv);
+    }, []);
 
     // BUY POINTS (stored in INR internally)
     const [buyPoints, setBuyPoints] = useState([]);
-
     const [newBuyName, setNewBuyName] = useState("");
     const [newBuyPrice, setNewBuyPrice] = useState("");
 
     const addBuy = () => {
         if (!newBuyName || !newBuyPrice) return;
-
         const price = parseFloat(newBuyPrice);
         if (isNaN(price)) return;
-
-        // Convert to INR for storage if entered in USD mode
-        const inrPrice = mode === "USD" ? price * usdToInr : price;
-
-        const lastTime = ethTime[ethTime.length - 1] || new Date().toLocaleTimeString();
-
+        const inrPrice = currency === "USD" ? price * (1 / convert(1)) : price;
         setBuyPoints((prev) => [
             ...prev,
-            {
-                id: Date.now(),
-                name: newBuyName,
-                inrPrice: inrPrice,
-                time: lastTime,
-            },
+            { id: Date.now(), name: newBuyName, inrPrice: currency === "INR" ? price : price * (prices[prices.length - 1] || 1) / (convert(prices[prices.length - 1]) || 1), time: new Date().toLocaleTimeString() },
         ]);
-
         setNewBuyName("");
         setNewBuyPrice("");
     };
@@ -141,89 +120,108 @@ export default function MainChart() {
     // SIDEBAR TOGGLE
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-    const toggleSidebar = () => {
-        setIsSidebarOpen((prev) => !prev);
-    };
+    // Convert prices to display currency
+    const displayPrices = prices.map((p) => convert(p));
+    const displayLabels = times.map((t) => formatLabel(t, timeframe.label));
 
-    // Convert all ETH prices into selected mode
-    const ethPrice = ethPriceRaw.map((p) => convert(p));
+    // Compute price change
+    const firstPrice = prices[0];
+    const lastPrice = prices[prices.length - 1];
+    const priceChange = firstPrice && lastPrice ? ((lastPrice - firstPrice) / firstPrice) * 100 : 0;
+    const isPositive = priceChange >= 0;
 
-    // CHART BUY LINES & MARKERS
+    // Buy line datasets
     const colors = ["#ff6347", "#ffa500", "#32cd32", "#00bfff", "#8a2be2", "#ff69b4"];
-
     const buyLineDatasets = buyPoints.map((b, index) => ({
-        label: `${b.name} (Buy @ ${convert(b.inrPrice).toFixed(2)} ${mode})`,
-        data: Array(ethPrice.length).fill(convert(b.inrPrice)),
+        label: `${b.name} (Buy @ ${convert(b.inrPrice).toFixed(2)} ${currency})`,
+        data: Array(displayPrices.length).fill(convert(b.inrPrice)),
         borderColor: colors[index % colors.length],
         borderDash: [6, 6],
         tension: 0,
+        pointRadius: 0,
     }));
-
-    const buyMarkers = buyPoints.map((b, index) => ({
-        type: "scatter",
-        label: `${b.name} Entry`,
-        data: [
-            {
-                x: b.time,
-                y: convert(b.inrPrice),
-            },
-        ],
-        backgroundColor: colors[index % colors.length],
-        pointRadius: 6,
-    }));
-
-    const currencySymbol = mode === "INR" ? "₹" : "$";
 
     return (
         <div className="eth-chart">
-            {/* Sidebar toggle button */}
             <button
                 className="trade-toggle-btn"
-                onClick={toggleSidebar}
+                onClick={() => setIsSidebarOpen(p => !p)}
                 style={{ right: "10px" }}
             >
                 {isSidebarOpen ? "Hide Trades" : "Show Trades"}
             </button>
 
-            {/* ==================== CHART ==================== */}
             <div className="eth-chart-container">
                 <div className="main-chart-title-row">
-                    <h2>ETH Live Price Chart ({mode})</h2>
+                    <h2>ETH Live Price Chart ({currency})</h2>
                     <span className="wazirx-badge">WazirX</span>
                 </div>
 
-                {/* INR / USD Switch */}
-                <select
-                    value={mode}
-                    onChange={(e) => setMode(e.target.value)}
-                >
-                    <option value="INR">INR</option>
-                    <option value="USD">USD</option>
-                </select>
+                {/* Live price + change */}
+                <div className="chart-price-row">
+                    {livePrice && (
+                        <span className="chart-live-price">
+                            {currencySymbol}{convert(livePrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                    )}
+                    <span className={`chart-price-change ${isPositive ? "chart-change-up" : "chart-change-down"}`}>
+                        {isPositive ? "+" : ""}{priceChange.toFixed(2)}%
+                    </span>
+                </div>
 
-                <div style={{ height: "400px", width: "100%" }}>
+                {/* Timeframe buttons */}
+                <div className="chart-timeframe-bar">
+                    {TIMEFRAMES.map(tf => (
+                        <button
+                            key={tf.label}
+                            className={`chart-tf-btn ${timeframe.label === tf.label ? "chart-tf-active" : ""}`}
+                            onClick={() => setTimeframe(tf)}
+                        >
+                            {tf.label}
+                        </button>
+                    ))}
+                </div>
+
+                <div style={{ height: "400px", width: "100%", position: "relative" }}>
+                    {loading && displayPrices.length === 0 && (
+                        <div className="candlestick-loading">Loading...</div>
+                    )}
                     <Line
                         data={{
-                            labels: ethTime,
+                            labels: displayLabels,
                             datasets: [
                                 {
-                                    label: `ETH/${mode}`,
-                                    data: ethPrice,
-                                    borderColor: "#6366f1",
-                                    backgroundColor: "rgba(99, 102, 241, 0.1)",
-                                    tension: 0.4,
+                                    label: `ETH/${currency}`,
+                                    data: displayPrices,
+                                    borderColor: isPositive ? "#00e676" : "#ff5252",
+                                    backgroundColor: isPositive
+                                        ? "rgba(0, 230, 118, 0.08)"
+                                        : "rgba(255, 82, 82, 0.08)",
+                                    tension: 0.3,
                                     fill: true,
+                                    pointRadius: 0,
+                                    pointHoverRadius: 4,
+                                    borderWidth: 2,
                                 },
                                 ...buyLineDatasets,
-                                ...buyMarkers,
                             ],
                         }}
                         options={{
                             responsive: true,
                             maintainAspectRatio: false,
+                            interaction: {
+                                mode: "index",
+                                intersect: false,
+                            },
                             scales: {
                                 x: {
-                                    ticks: { color: "rgba(255,255,255,0.3)", autoSkip: true, maxRotation: 0, minRotation: 0 },
+                                    ticks: {
+                                        color: "rgba(255,255,255,0.3)",
+                                        autoSkip: true,
+                                        maxTicksLimit: 8,
+                                        maxRotation: 0,
+                                        minRotation: 0,
+                                    },
                                     grid: { color: "rgba(255,255,255,0.04)" },
                                 },
                                 y: {
@@ -237,13 +235,18 @@ export default function MainChart() {
                                     position: "top",
                                     labels: { color: "rgba(255,255,255,0.6)" },
                                 },
+                                tooltip: {
+                                    callbacks: {
+                                        label: (ctx) => `${ctx.dataset.label}: ${currencySymbol}${ctx.parsed.y.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                                    },
+                                },
                             },
                         }}
                     />
                 </div>
             </div>
 
-            {/* ==================== SIDEBAR ==================== */}
+            {/* SIDEBAR */}
             <div className="eth-chart-sidebar"
                 style={{
                     minWidth: isSidebarOpen ? "280px" : "0px",
@@ -255,66 +258,38 @@ export default function MainChart() {
                 {isSidebarOpen && (
                     <>
                         <h3>Add Buy Phase</h3>
-
-                        <input
-                            type="text"
-                            placeholder="Trade name"
-                            value={newBuyName}
-                            onChange={(e) => setNewBuyName(e.target.value)}
-                        />
-
-                        <input
-                            type="number"
-                            placeholder={`Buy price in ${mode}`}
-                            value={newBuyPrice}
-                            onChange={(e) => setNewBuyPrice(e.target.value)}
-                        />
-
-                        <button onClick={addBuy}>
-                            Add Buy
-                        </button>
+                        <input type="text" placeholder="Trade name" value={newBuyName} onChange={(e) => setNewBuyName(e.target.value)} />
+                        <input type="number" placeholder={`Buy price in ${currency}`} value={newBuyPrice} onChange={(e) => setNewBuyPrice(e.target.value)} />
+                        <button onClick={addBuy}>Add Buy</button>
 
                         <h3 style={{ marginTop: "20px" }}>Active Trades</h3>
-
                         <table className="trade-table">
                             <tbody>
                             {buyPoints.map((b, index) => {
                                 const buy = convert(b.inrPrice);
-                                const current = ethPrice[ethPrice.length - 1] || buy;
-
+                                const current = displayPrices[displayPrices.length - 1] || buy;
                                 const pnl = current - buy;
                                 const pnlPercent = (pnl / buy) * 100;
-
-                                const pnlClass =
-                                    pnl > 0 ? "pnl-profit" : pnl < 0 ? "pnl-loss" : "pnl-neutral";
+                                const pnlClass = pnl > 0 ? "pnl-profit" : pnl < 0 ? "pnl-loss" : "pnl-neutral";
 
                                 return (
                                     <tr key={b.id} className="trade-row">
                                         <td className="trade-cell">
-                                            <span
-                                                className="trade-color-dot"
-                                                style={{ background: colors[index % colors.length] }}
-                                            />
+                                            <span className="trade-color-dot" style={{ background: colors[index % colors.length] }} />
                                             {b.name}
                                         </td>
-
                                         <td className="trade-cell">@ {currencySymbol}{buy.toFixed(2)}</td>
-
                                         <td className={`trade-cell ${pnlClass}`}>
                                             {pnl.toFixed(2)} ({pnlPercent.toFixed(2)}%)
                                         </td>
-
                                         <td className="trade-cell" style={{ textAlign: "right" }}>
-                                            <button className="delete-btn" onClick={() => deleteBuy(b.id)}>
-                                                X
-                                            </button>
+                                            <button className="delete-btn" onClick={() => deleteBuy(b.id)}>X</button>
                                         </td>
                                     </tr>
                                 );
                             })}
                             </tbody>
                         </table>
-
                     </>
                 )}
             </div>

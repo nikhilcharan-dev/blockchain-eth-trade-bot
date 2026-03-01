@@ -60,6 +60,71 @@
   color: #fff;
 }
 
+/* ═══ Price Row & Timeframe Bar ═══ */
+.chart-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.chart-live-price {
+  font-size: 28px;
+  font-weight: 700;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-price-change {
+  font-size: 15px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-change-up {
+  color: #00e676;
+  background: rgba(0, 230, 118, 0.1);
+}
+
+.chart-change-down {
+  color: #ff5252;
+  background: rgba(255, 82, 82, 0.1);
+}
+
+.chart-timeframe-bar {
+  display: flex;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 2px;
+  margin-bottom: 16px;
+  width: fit-content;
+}
+
+.chart-tf-btn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.chart-tf-btn:hover {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.chart-tf-active {
+  color: #fff;
+  background: rgba(99, 102, 241, 0.25);
+}
+
 .eth-chart-sidebar {
   transition: all 0.3s ease;
   overflow-y: auto;
@@ -310,6 +375,19 @@
   .multi-chart-select {
     font-size: 13px;
     padding: 7px 10px;
+  }
+
+  .chart-live-price {
+    font-size: 22px;
+  }
+
+  .chart-price-change {
+    font-size: 13px;
+  }
+
+  .chart-tf-btn {
+    font-size: 11px;
+    padding: 5px 10px;
   }
 
   .trade-table {
