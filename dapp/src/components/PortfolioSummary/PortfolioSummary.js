@@ -222,22 +222,29 @@ export default function PortfolioSummary() {
   // ── Sparkline data ──
   const fetchedSparkRef = useRef(new Set());
   useEffect(() => {
+    let cancelled = false;
     const syms = [...new Set([
       ...walletHoldings.filter(h => h.symbol !== "INR").map(h => h.symbol),
       ...holdings.map(h => h.symbol),
-    ])];
-    syms.forEach(async sym => {
-      if (fetchedSparkRef.current.has(sym)) return;
-      fetchedSparkRef.current.add(sym);
-      try {
+    ])].filter(sym => !fetchedSparkRef.current.has(sym));
+
+    if (syms.length === 0) return;
+    syms.forEach(sym => fetchedSparkRef.current.add(sym));
+
+    Promise.allSettled(
+      syms.map(async sym => {
         const r = await fetch(
           `https://api.wazirx.com/sapi/v1/klines?symbol=${sym.toLowerCase()}inr&limit=24&interval=1h`
         );
         if (!r.ok) return;
         const d = await r.json();
-        if (Array.isArray(d)) setSparklines(prev => ({ ...prev, [sym]: d.map(k => parseFloat(k[4])) }));
-      } catch {}
-    });
+        if (Array.isArray(d) && !cancelled) {
+          setSparklines(prev => ({ ...prev, [sym]: d.map(k => parseFloat(k[4])) }));
+        }
+      })
+    );
+
+    return () => { cancelled = true; };
   }, [walletHoldings, holdings]);
 
   // ── P/L history snapshots ──
@@ -460,7 +467,7 @@ export default function PortfolioSummary() {
               {fiatWallet.map(h => (
                 <div key={h.symbol} className="portfolio-table-row portfolio-row-fiat">
                   <span className="pt-col pt-col-token"><strong>INR</strong></span>
-                  <span className="pt-col pt-col-amount">{h.free?.toFixed(2)}</span>
+                  <span className="pt-col pt-col-amount">{h.free != null ? h.free.toFixed(2) : h.amount?.toFixed(2) ?? "---"}</span>
                   <span className="pt-col pt-col-spark">---</span>
                   <span className="pt-col pt-col-bought">---</span>
                   <span className="pt-col pt-col-current">---</span>

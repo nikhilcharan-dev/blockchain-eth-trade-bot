@@ -104,7 +104,9 @@ export default function MainChart() {
                 if (!resp.ok) return;
                 const data = await resp.json();
                 setLivePrice(parseFloat(data.lastPrice));
-            } catch {}
+            } catch (err) {
+                console.error("Live price fetch error:", err);
+            }
         };
         fetchLive();
         const iv = setInterval(fetchLive, 3000);
@@ -119,8 +121,9 @@ export default function MainChart() {
     const addBuy = () => {
         if (!newBuyName || !newBuyPrice) return;
         const price = parseFloat(newBuyPrice);
-        if (isNaN(price)) return;
-        const inrPrice = currency === "INR" ? price : price / convert(1);
+        if (isNaN(price) || price <= 0) return;
+        const convRate = convert(1);
+        const inrPrice = currency === "INR" ? price : (convRate > 0 ? price / convRate : price);
         setBuyPoints((prev) => [
             ...prev,
             { id: Date.now(), name: newBuyName, inrPrice },

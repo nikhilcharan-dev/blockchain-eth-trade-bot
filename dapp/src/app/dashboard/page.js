@@ -33,10 +33,12 @@ function DashboardContent() {
   const contentRef = useRef(null)
 
   useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem("id"))
-    if (stored?.username) {
-      setUsername(stored.username)
-    }
+    try {
+      const stored = JSON.parse(localStorage.getItem("id"))
+      if (stored?.username) {
+        setUsername(stored.username)
+      }
+    } catch {}
   }, [])
 
   useEffect(() => {
