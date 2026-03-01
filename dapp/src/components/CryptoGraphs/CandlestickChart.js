@@ -107,13 +107,19 @@ export default function CandlestickChart() {
       if (!r.ok) return;
       const data = await r.json();
       if (Array.isArray(data)) {
-        setCandles(data.map(k => ({
-          t: k[0], o: parseFloat(k[1]), h: parseFloat(k[2]),
-          l: parseFloat(k[3]), c: parseFloat(k[4]), v: parseFloat(k[5]),
-        })));
+        setCandles(
+          data
+            .filter(k => k.length >= 6)
+            .map(k => ({
+              t: k[0], o: parseFloat(k[1]), h: parseFloat(k[2]),
+              l: parseFloat(k[3]), c: parseFloat(k[4]), v: parseFloat(k[5]),
+            }))
+            .filter(c => isFinite(c.c) && isFinite(c.o))
+        );
       }
-    } catch {}
-    finally { setLoading(false); }
+    } catch (err) {
+      console.error("Candlestick fetch error:", err);
+    } finally { setLoading(false); }
   }, [token, interval, intervalObj.ms]);
 
   useEffect(() => { fetchCandles(); }, [fetchCandles]);
@@ -310,7 +316,8 @@ export default function CandlestickChart() {
       ctx.fillStyle = "rgba(255,255,255,0.02)";
       ctx.fillRect(0, rsiTop, W, macdH);
 
-      const allVals = [...macd.macd, ...macd.signal, ...macd.hist].filter(v => v !== null && !isNaN(v));
+      const allVals = [...macd.macd, ...macd.signal, ...macd.hist].filter(v => v !== null && isFinite(v));
+      if (allVals.length === 0) return;
       const mMax = Math.max(...allVals), mMin = Math.min(...allVals);
       const mRange = mMax - mMin || 1;
       const yM = (v) => rsiTop + 4 + (1 - (v - mMin) / mRange) * (macdH - 8);
