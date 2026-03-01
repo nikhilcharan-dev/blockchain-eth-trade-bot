@@ -25,25 +25,41 @@ const tokenList = [
 ];
 
 const TIMEFRAMES = [
-    { label: "1D",  interval: "15m", limit: 96  },
-    { label: "1W",  interval: "1h",  limit: 168 },
-    { label: "1M",  interval: "4h",  limit: 180 },
-    { label: "3M",  interval: "1d",  limit: 90  },
-    { label: "1Y",  interval: "1d",  limit: 365 },
+    { label: "1D",  interval: "15m", ms: 24 * 60 * 60 * 1000 },
+    { label: "1W",  interval: "1h",  ms: 7 * 24 * 60 * 60 * 1000 },
+    { label: "1M",  interval: "4h",  ms: 30 * 24 * 60 * 60 * 1000 },
+    { label: "3M",  interval: "1d",  ms: 90 * 24 * 60 * 60 * 1000 },
+    { label: "1Y",  interval: "1d",  ms: 365 * 24 * 60 * 60 * 1000 },
 ];
 
 function formatLabel(timestamp, tfLabel) {
     const d = new Date(timestamp);
+    if (isNaN(d.getTime())) return "";
     if (tfLabel === "1D") {
-        return d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+        return d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false });
     }
     if (tfLabel === "1W") {
-        return d.toLocaleDateString("en-IN", { weekday: "short", hour: "2-digit", minute: "2-digit" });
+        return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" }) + " " +
+            d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false });
     }
     if (tfLabel === "1M") {
         return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
     }
-    return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" });
+    if (tfLabel === "3M") {
+        return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
+    }
+    return d.toLocaleDateString("en-IN", { month: "short", year: "2-digit" });
+}
+
+function OrbitLoader() {
+    return (
+        <div className="chart-loader">
+            <div className="orbit-loader">
+                <span /><span /><span /><span />
+            </div>
+            <div className="chart-loader-text">Loading chart data...</div>
+        </div>
+    );
 }
 
 export default function MultiChart() {
@@ -58,19 +74,21 @@ export default function MultiChart() {
     const [baseline, setBaseline] = useState("");
     const baselineValue = parseFloat(baseline) || null;
 
-    // Fetch historical kline data
+    // Fetch historical kline data with explicit startTime
     const fetchHistory = useCallback(async () => {
         setLoading(true);
         try {
             const symbol = token.toLowerCase() + "inr";
+            const now = Date.now();
+            const startTime = now - timeframe.ms;
             const r = await fetch(
-                `${WAZIRX_KLINES_URL}?symbol=${symbol}&interval=${timeframe.interval}&limit=${timeframe.limit}`
+                `${WAZIRX_KLINES_URL}?symbol=${symbol}&interval=${timeframe.interval}&startTime=${startTime}&endTime=${now}&limit=500`
             );
             if (!r.ok) return;
             const data = await r.json();
             if (Array.isArray(data) && data.length > 0) {
-                setPrices(data.map(k => parseFloat(k[4]))); // close price
-                setTimes(data.map(k => k[0])); // timestamp
+                setPrices(data.map(k => parseFloat(k[4])));
+                setTimes(data.map(k => k[0]));
             }
         } catch (err) {
             console.error("Klines fetch error:", err);
@@ -81,17 +99,14 @@ export default function MultiChart() {
 
     useEffect(() => { fetchHistory(); }, [fetchHistory]);
 
-    // Auto-refresh every 30s
     useEffect(() => {
         const iv = setInterval(fetchHistory, 30000);
         return () => clearInterval(iv);
     }, [fetchHistory]);
 
-    // Convert to display currency
     const displayPrices = prices.map((p) => convert(p));
     const displayLabels = times.map((t) => formatLabel(t, timeframe.label));
 
-    // Price change
     const firstPrice = prices[0];
     const lastPrice = prices[prices.length - 1];
     const priceChange = firstPrice && lastPrice ? ((lastPrice - firstPrice) / firstPrice) * 100 : 0;
@@ -107,16 +122,17 @@ export default function MultiChart() {
                     <span className="wazirx-badge">WazirX</span>
                 </div>
 
-                {/* Live price + change */}
                 <div className="chart-price-row">
                     {lastPrice && (
                         <span className="chart-live-price">
                             {currencySymbol}{convert(lastPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                     )}
-                    <span className={`chart-price-change ${isPositive ? "chart-change-up" : "chart-change-down"}`}>
-                        {isPositive ? "+" : ""}{priceChange.toFixed(2)}%
-                    </span>
+                    {prices.length > 0 && (
+                        <span className={`chart-price-change ${isPositive ? "chart-change-up" : "chart-change-down"}`}>
+                            {isPositive ? "+" : ""}{priceChange.toFixed(2)}%
+                        </span>
+                    )}
                 </div>
 
                 <div className="multi-chart-controls">
@@ -130,7 +146,6 @@ export default function MultiChart() {
                         ))}
                     </select>
 
-                    {/* Timeframe buttons */}
                     <div className="chart-timeframe-bar">
                         {TIMEFRAMES.map(tf => (
                             <button
@@ -154,9 +169,7 @@ export default function MultiChart() {
             </div>
 
             <div style={{ height: "350px", position: "relative" }}>
-                {loading && displayPrices.length === 0 && (
-                    <div className="candlestick-loading">Loading...</div>
-                )}
+                {loading && displayPrices.length === 0 && <OrbitLoader />}
                 <Line
                     data={{
                         labels: displayLabels,
@@ -189,10 +202,7 @@ export default function MultiChart() {
                     options={{
                         responsive: true,
                         maintainAspectRatio: false,
-                        interaction: {
-                            mode: "index",
-                            intersect: false,
-                        },
+                        interaction: { mode: "index", intersect: false },
                         scales: {
                             x: {
                                 ticks: {

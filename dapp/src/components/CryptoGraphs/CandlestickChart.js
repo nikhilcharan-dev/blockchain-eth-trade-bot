@@ -5,9 +5,12 @@ import { useCurrency } from "@/context/CurrencyContext";
 import "./styles.css";
 
 const INTERVALS = [
-  { label: "1m", value: "1m" }, { label: "5m", value: "5m" },
-  { label: "15m", value: "15m" }, { label: "1h", value: "1h" },
-  { label: "4h", value: "4h" }, { label: "1d", value: "1d" },
+  { label: "1m", value: "1m", ms: 100 * 60 * 1000 },
+  { label: "5m", value: "5m", ms: 500 * 60 * 1000 },
+  { label: "15m", value: "15m", ms: 1500 * 60 * 1000 },
+  { label: "1h", value: "1h", ms: 100 * 60 * 60 * 1000 },
+  { label: "4h", value: "4h", ms: 400 * 60 * 60 * 1000 },
+  { label: "1d", value: "1d", ms: 100 * 24 * 60 * 60 * 1000 },
 ];
 
 const TOKENS = [
@@ -86,7 +89,8 @@ const INDICATOR_LIST = [
 export default function CandlestickChart() {
   const { convert, currencySymbol } = useCurrency();
   const [token, setToken] = useState("ETH");
-  const [interval, setInterval_] = useState("1h");
+  const [intervalObj, setIntervalObj] = useState(INTERVALS[3]); // default 1h
+  const interval = intervalObj.value;
   const [candles, setCandles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [indicators, setIndicators] = useState({ bb: true, rsi: false, macd: false });
@@ -95,8 +99,10 @@ export default function CandlestickChart() {
   const fetchCandles = useCallback(async () => {
     setLoading(true);
     try {
+      const now = Date.now();
+      const startTime = now - intervalObj.ms;
       const r = await fetch(
-        `https://api.wazirx.com/sapi/v1/klines?symbol=${token.toLowerCase()}inr&interval=${interval}&limit=100`
+        `https://api.wazirx.com/sapi/v1/klines?symbol=${token.toLowerCase()}inr&interval=${interval}&startTime=${startTime}&endTime=${now}&limit=500`
       );
       if (!r.ok) return;
       const data = await r.json();
@@ -108,7 +114,7 @@ export default function CandlestickChart() {
       }
     } catch {}
     finally { setLoading(false); }
-  }, [token, interval]);
+  }, [token, interval, intervalObj.ms]);
 
   useEffect(() => { fetchCandles(); }, [fetchCandles]);
 
@@ -352,17 +358,23 @@ export default function CandlestickChart() {
       ctx.fillText("MACD", padLeft + 2, rsiTop + 12);
     }
 
-    // Time labels
+    // Time labels — show dates for longer intervals, times for short
     ctx.fillStyle = "rgba(255,255,255,0.2)";
     ctx.font = "10px sans-serif";
     ctx.textAlign = "center";
-    const step = Math.max(1, Math.floor(n / 6));
+    const step = Math.max(1, Math.floor(n / 7));
     for (let i = 0; i < n; i += step) {
       const x = padLeft + i * spacing + spacing / 2;
       const d = new Date(candles[i].t);
-      const label = interval.includes("d") || interval.includes("w")
-        ? d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" })
-        : d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+      let label;
+      if (interval === "1d") {
+        label = d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" });
+      } else if (interval === "4h" || interval === "1h") {
+        label = d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" }) + " " +
+          d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false });
+      } else {
+        label = d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false });
+      }
       ctx.fillText(label, x, mainH + (showRSI || showMACD ? -2 : 0) - 2);
     }
 
@@ -380,7 +392,7 @@ export default function CandlestickChart() {
             {INTERVALS.map(i => (
               <button key={i.value}
                 className={`candlestick-int-btn ${interval === i.value ? "candlestick-int-active" : ""}`}
-                onClick={() => setInterval_(i.value)}>
+                onClick={() => setIntervalObj(i)}>
                 {i.label}
               </button>
             ))}
@@ -398,7 +410,14 @@ export default function CandlestickChart() {
       </div>
 
       <div className="candlestick-canvas-wrap">
-        {loading && <div className="candlestick-loading">Loading...</div>}
+        {loading && (
+          <div className="chart-loader">
+            <div className="candle-loader">
+              <span /><span /><span /><span /><span /><span />
+            </div>
+            <div className="chart-loader-text">Loading candles...</div>
+          </div>
+        )}
         <canvas ref={canvasRef} className="candlestick-canvas" />
       </div>
     </div>
