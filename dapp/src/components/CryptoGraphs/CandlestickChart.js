@@ -5,12 +5,12 @@ import { useCurrency } from "@/context/CurrencyContext";
 import "./styles.css";
 
 const INTERVALS = [
-  { label: "1m", value: "1m", ms: 100 * 60 * 1000 },
-  { label: "5m", value: "5m", ms: 500 * 60 * 1000 },
-  { label: "15m", value: "15m", ms: 1500 * 60 * 1000 },
-  { label: "1h", value: "1h", ms: 100 * 60 * 60 * 1000 },
-  { label: "4h", value: "4h", ms: 400 * 60 * 60 * 1000 },
-  { label: "1d", value: "1d", ms: 100 * 24 * 60 * 60 * 1000 },
+  { label: "1m", value: "1m", ms: 24 * 60 * 60 * 1000 },
+  { label: "5m", value: "5m", ms: 3 * 24 * 60 * 60 * 1000 },
+  { label: "15m", value: "15m", ms: 7 * 24 * 60 * 60 * 1000 },
+  { label: "1h", value: "1h", ms: 30 * 24 * 60 * 60 * 1000 },
+  { label: "4h", value: "4h", ms: 120 * 24 * 60 * 60 * 1000 },
+  { label: "1d", value: "1d", ms: 365 * 24 * 60 * 60 * 1000 },
 ];
 
 const TOKENS = [
@@ -102,7 +102,8 @@ export default function CandlestickChart() {
       const now = Date.now();
       const startTime = now - intervalObj.ms;
       const r = await fetch(
-        `https://api.wazirx.com/sapi/v1/klines?symbol=${token.toLowerCase()}inr&interval=${interval}&startTime=${startTime}&endTime=${now}&limit=500`
+        `https://api.wazirx.com/sapi/v1/klines?symbol=${token.toLowerCase()}inr&interval=${interval}&startTime=${startTime}&endTime=${now}&limit=500`,
+        { cache: "no-store" }
       );
       if (!r.ok) return;
       const data = await r.json();
@@ -114,7 +115,7 @@ export default function CandlestickChart() {
               t: k[0], o: parseFloat(k[1]), h: parseFloat(k[2]),
               l: parseFloat(k[3]), c: parseFloat(k[4]), v: parseFloat(k[5]),
             }))
-            .filter(c => isFinite(c.c) && isFinite(c.o))
+            .filter(c => Number.isFinite(c.c) && Number.isFinite(c.o))
         );
       }
     } catch (err) {
@@ -316,7 +317,7 @@ export default function CandlestickChart() {
       ctx.fillStyle = "rgba(255,255,255,0.02)";
       ctx.fillRect(0, rsiTop, W, macdH);
 
-      const allVals = [...macd.macd, ...macd.signal, ...macd.hist].filter(v => v !== null && isFinite(v));
+      const allVals = [...macd.macd, ...macd.signal, ...macd.hist].filter(v => v !== null && Number.isFinite(v));
       if (allVals.length === 0) return;
       const mMax = Math.max(...allVals), mMin = Math.min(...allVals);
       const mRange = mMax - mMin || 1;
@@ -331,7 +332,7 @@ export default function CandlestickChart() {
       // Histogram
       candles.forEach((_, i) => {
         const v = macd.hist[i];
-        if (isNaN(v)) return;
+        if (Number.isNaN(v)) return;
         const x = padLeft + i * spacing + (spacing - cw) / 2;
         const y0 = yM(0), y1 = yM(v);
         ctx.fillStyle = v >= 0 ? "rgba(0,230,118,0.3)" : "rgba(255,82,82,0.3)";
@@ -343,7 +344,7 @@ export default function CandlestickChart() {
       ctx.strokeStyle = "#06b6d4";
       ctx.lineWidth = 1.5;
       macd.macd.forEach((v, i) => {
-        if (isNaN(v)) return;
+        if (Number.isNaN(v)) return;
         const x = padLeft + i * spacing + spacing / 2;
         i === 0 ? ctx.moveTo(x, yM(v)) : ctx.lineTo(x, yM(v));
       });
@@ -354,7 +355,7 @@ export default function CandlestickChart() {
       ctx.strokeStyle = "#f97316";
       ctx.lineWidth = 1;
       macd.signal.forEach((v, i) => {
-        if (isNaN(v)) return;
+        if (Number.isNaN(v)) return;
         const x = padLeft + i * spacing + spacing / 2;
         i === 0 ? ctx.moveTo(x, yM(v)) : ctx.lineTo(x, yM(v));
       });

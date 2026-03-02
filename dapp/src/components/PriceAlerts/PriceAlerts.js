@@ -16,6 +16,20 @@ function loadLog() {
 }
 function saveLog(l) { localStorage.setItem(ALERT_LOG_KEY, JSON.stringify(l.slice(-50))); }
 
+function normalizeLogEntry(entry) {
+  if (!entry || typeof entry !== "object") return null;
+  return {
+    symbol: entry.symbol || "MARKET",
+    condition: entry.condition || "info",
+    target: entry.target ?? null,
+    actual: entry.actual ?? null,
+    message: entry.message || "",
+    source: entry.source || "price",
+    type: entry.type || "price",
+    time: entry.time || Date.now(),
+  };
+}
+
 export default function PriceAlerts() {
   const { wazirxPrices, formatPrice } = useCurrency();
   const [alerts, setAlerts] = useState([]);
@@ -26,7 +40,32 @@ export default function PriceAlerts() {
   const [permGranted, setPermGranted] = useState(false);
   const triggeredRef = useRef(new Set());
 
-  useEffect(() => { setAlerts(loadAlerts()); setLog(loadLog()); }, []);
+  useEffect(() => {
+    setAlerts(loadAlerts());
+    setLog(loadLog().map(normalizeLogEntry).filter(Boolean));
+  }, []);
+
+  useEffect(() => {
+    const onAnomalyAlert = (event) => {
+      const detail = normalizeLogEntry(event.detail);
+      if (!detail) return;
+
+      const currentLog = loadLog().map(normalizeLogEntry).filter(Boolean);
+      currentLog.push(detail);
+      saveLog(currentLog);
+      setLog(currentLog);
+
+      if (permGranted && typeof Notification !== "undefined") {
+        new Notification(`Market Anomaly: ${detail.symbol}`, {
+          body: detail.message || "Order book anomaly detected.",
+          icon: "/favicon.ico",
+        });
+      }
+    };
+
+    window.addEventListener("market-anomaly-alert", onAnomalyAlert);
+    return () => window.removeEventListener("market-anomaly-alert", onAnomalyAlert);
+  }, [permGranted]);
 
   useEffect(() => {
     if (typeof Notification !== "undefined" && Notification.permission === "granted") {
@@ -94,6 +133,9 @@ export default function PriceAlerts() {
           condition: alert.condition,
           target: alert.price,
           actual: current,
+          source: "price",
+          type: "price",
+          message: `${alert.symbol} ${alert.condition === "above" ? "crossed above" : "dropped below"} ${formatPrice(alert.price)}.`,
           time: Date.now(),
         });
         logChanged = true;
@@ -106,7 +148,7 @@ export default function PriceAlerts() {
 
     if (logChanged) {
       saveLog(currentLog);
-      setLog(currentLog);
+      setLog(currentLog.map(normalizeLogEntry).filter(Boolean));
     }
 
     const anyChanged = updated.some((a, i) => a.active !== alerts[i]?.active);
@@ -184,7 +226,11 @@ export default function PriceAlerts() {
           {log.slice(-10).reverse().map((l, i) => (
             <div key={i} className="pa-log-row">
               <strong>{l.symbol}</strong>
-              <span>{l.condition === "above" ? "crossed above" : "dropped below"} {formatPrice(l.target)}</span>
+              <span>
+                {l.type === "anomaly"
+                  ? (l.message || "Order book anomaly detected")
+                  : `${l.condition === "above" ? "crossed above" : "dropped below"} ${formatPrice(l.target)}`}
+              </span>
               <span className="pa-log-time">{new Date(l.time).toLocaleString()}</span>
             </div>
           ))}
