@@ -104,6 +104,39 @@
   width: fit-content;
 }
 
+.main-symbol-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.feed-mode-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(34, 197, 94, 0.12);
+  color: #86efac;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  white-space: nowrap;
+}
+
+
+.mini-refresh-btn {
+  width: auto;
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  background: rgba(99, 102, 241, 0.18);
+  color: #c7d2fe;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mini-refresh-btn:hover {
+  background: rgba(99, 102, 241, 0.3);
+}
 .chart-tf-btn {
   background: none;
   border: none;
@@ -226,12 +259,130 @@
   border-radius: 6px !important;
   cursor: pointer;
   font-size: 12px !important;
-  width: auto !important;
+  width: auto;
   transition: all 0.2s !important;
 }
 
 .delete-btn:hover {
   background: rgba(255, 82, 82, 0.3) !important;
+}
+
+.order-book-meta {
+  margin: 6px 0 10px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  display: grid;
+  gap: 4px;
+}
+
+.depth-balance-track {
+  width: 100%;
+  height: 6px;
+  margin-bottom: 10px;
+  border-radius: 999px;
+  background: rgba(255, 82, 82, 0.28);
+  overflow: hidden;
+}
+
+.depth-balance-bid {
+  height: 100%;
+  background: rgba(0, 230, 118, 0.9);
+  transition: width 0.2s ease;
+}
+
+.spread-trend-wrap {
+  margin-bottom: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.spread-trend-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  margin-bottom: 6px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.spread-up {
+  color: #76f3a6;
+}
+
+.spread-down {
+  color: #ff8a8a;
+}
+
+.spread-sparkline {
+  width: 100%;
+  height: 52px;
+  display: block;
+}
+
+.spread-sparkline-line {
+  stroke: #93c5fd;
+  stroke-width: 2;
+  fill: none;
+}
+
+.spread-empty {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.order-book-grid-ladder {
+  grid-template-columns: 1fr;
+}
+
+.order-book-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.order-book-col {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  overflow: hidden;
+}
+
+.order-book-col h4 {
+  margin: 0;
+  padding: 8px;
+  font-size: 12px;
+  letter-spacing: 0.4px;
+  color: rgba(255, 255, 255, 0.78);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.order-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.order-row + .order-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.order-ask {
+  color: #ff8a8a;
+}
+
+.order-bid {
+  color: #76f3a6;
+}
+
+.order-book-empty {
+  margin: 0;
+  padding: 8px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
 }
 
 /* WazirX badge & title row */
