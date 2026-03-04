@@ -59,16 +59,16 @@ async function fetchOrdersWithRetry(symbol, apiKey, apiSecret, retries = 2) {
   return [];
 }
 
-function calcAvgBuyPrice(orders) {
+function calcAvgBuyPrice(orders, currentHolding) {
   let totalBuyQty = 0;
   let totalBuyCost = 0;
+  let totalSellQty = 0;
 
   for (const o of orders) {
     const status = (o.status || "").toLowerCase();
     const side = (o.side || "").toLowerCase();
 
-    // Accept any completed buy: "done", "filled", "executed", "completed"
-    if (side !== "buy") continue;
+    // Skip non-completed orders
     if (status === "cancel" || status === "cancelled" || status === "wait" || status === "new") continue;
 
     // Use executedQty first, fall back to origQty for fully filled orders
@@ -89,13 +89,22 @@ function calcAvgBuyPrice(orders) {
     }
 
     if (price > 0) {
-      totalBuyQty += qty;
-      totalBuyCost += qty * price;
+      if (side === "buy") {
+        totalBuyQty += qty;
+        totalBuyCost += qty * price;
+      } else if (side === "sell") {
+        totalSellQty += qty;
+      }
     }
   }
 
   if (totalBuyQty > 0) {
-    return { avgBuyPrice: totalBuyCost / totalBuyQty, totalInvested: totalBuyCost };
+    const avgBuyPrice = totalBuyCost / totalBuyQty;
+    // totalInvested = avgBuyPrice * currently held tokens, not all historical buys
+    // This gives the cost basis of the current position
+    const holdingQty = currentHolding > 0 ? currentHolding : Math.max(0, totalBuyQty - totalSellQty);
+    const totalInvested = avgBuyPrice * holdingQty;
+    return { avgBuyPrice, totalInvested };
   }
   return null;
 }
@@ -156,7 +165,7 @@ export async function POST(request) {
       const orders = orderMap[h.asset];
       if (!orders || !Array.isArray(orders) || orders.length === 0) return entry;
 
-      const result = calcAvgBuyPrice(orders);
+      const result = calcAvgBuyPrice(orders, total);
       if (result) {
         entry.avgBuyPrice = result.avgBuyPrice;
         entry.totalInvested = result.totalInvested;
