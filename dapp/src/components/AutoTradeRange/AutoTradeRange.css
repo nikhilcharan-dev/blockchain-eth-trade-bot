@@ -4,7 +4,7 @@
 
 .at-container {
   padding: 20px;
-  max-width: 90svw;
+  max-width: 1200px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -14,6 +14,30 @@
 /* ─── Utility Colors ─── */
 .at-text-green { color: #00e676 !important; }
 .at-text-red { color: #ff5252 !important; }
+
+/* ─── Global Resets ─── */
+.at-container input[type="number"]::-webkit-inner-spin-button,
+.at-container input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.at-container input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.at-container button,
+.at-container input,
+.at-container select {
+  font-family: inherit;
+}
+
+.at-container button:focus-visible,
+.at-container input:focus-visible,
+.at-container select:focus-visible {
+  outline: 2px solid rgba(99, 102, 241, 0.6);
+  outline-offset: 2px;
+}
 
 /* ═══ OFFLINE / NOT CONNECTED STATE ═══ */
 .at-offline-card {
@@ -362,6 +386,12 @@
   gap: 16px;
 }
 
+/* Create Wrapper (groups toggle + form with no gap) */
+.at-create-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
 /* Create Toggle */
 .at-create-toggle {
   display: flex;
@@ -421,7 +451,6 @@
   border-top: none;
   border-radius: 0 0 14px 14px;
   padding: 24px;
-  margin-top: -16px;
 }
 
 .at-form {

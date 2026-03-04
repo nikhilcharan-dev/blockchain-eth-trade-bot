@@ -31,10 +31,22 @@ const TOKEN_COLORS = {
 
 const ENGINE_INTERVAL = 15000;
 
+const getRelativeTime = (date) => {
+  const now = new Date();
+  const diff = now - new Date(date);
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+};
+
+const formatBadgeCount = (count) => count > 99 ? "99+" : count;
+
 export default function AutoTradeRange() {
-  const {
-    wazirxPrices, formatPrice, formatValue, currency, pairLabel,
-  } = useCurrency();
+  const { wazirxPrices, formatPrice } = useCurrency();
 
   const [ranges, setRanges] = useState([]);
   const [logs, setLogs] = useState([]);
@@ -60,8 +72,6 @@ export default function AutoTradeRange() {
   const [expandedRange, setExpandedRange] = useState(null);
 
   const engineRef = useRef(null);
-  const engineTickRef = useRef(0);
-  const [engineTick, setEngineTick] = useState(0);
 
   useEffect(() => {
     fetch("/api/settings")
@@ -106,8 +116,6 @@ export default function AutoTradeRange() {
         return;
       }
       setLastEngineRun(new Date());
-      engineTickRef.current += 1;
-      setEngineTick(engineTickRef.current);
       if (data.executed && data.executed.length > 0) {
         fetchRanges();
         fetchLogs();
@@ -189,6 +197,7 @@ export default function AutoTradeRange() {
       setTimeout(() => setFormSuccess(""), 5000);
     } catch (err) {
       setFormError(err.message);
+      setTimeout(() => setFormError(""), 8000);
     } finally {
       setFormSubmitting(false);
     }
@@ -206,6 +215,7 @@ export default function AutoTradeRange() {
   };
 
   const deleteRange = async (rangeId) => {
+    if (!window.confirm("Delete this trade range? This cannot be undone.")) return;
     try {
       await fetch(`/api/trade-range?id=${rangeId}`, { method: "DELETE" });
       fetchRanges();
@@ -339,18 +349,6 @@ export default function AutoTradeRange() {
     { id: "logs", label: "Trade Log", icon: "list" },
     { id: "stats", label: "Analytics", icon: "chart" },
   ];
-
-  const getRelativeTime = (date) => {
-    const now = new Date();
-    const diff = now - new Date(date);
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return "Just now";
-    if (mins < 60) return `${mins}m ago`;
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}h ago`;
-    const days = Math.floor(hrs / 24);
-    return `${days}d ago`;
-  };
 
   if (!apiConnected) {
     return (
@@ -499,10 +497,10 @@ export default function AutoTradeRange() {
           >
             <span className="at-nav-tab-label">{s.label}</span>
             {s.id === "ranges" && ranges.length > 0 && (
-              <span className="at-nav-badge">{ranges.length}</span>
+              <span className="at-nav-badge">{formatBadgeCount(ranges.length)}</span>
             )}
             {s.id === "logs" && logs.length > 0 && (
-              <span className="at-nav-badge">{logs.length}</span>
+              <span className="at-nav-badge">{formatBadgeCount(logs.length)}</span>
             )}
           </button>
         ))}
@@ -511,25 +509,25 @@ export default function AutoTradeRange() {
       {/* ═══ TRADE RANGES SECTION ═══ */}
       {activeSection === "ranges" && (
         <div className="at-ranges-section">
-          {/* Create Range Toggle */}
-          <button
-            className={`at-create-toggle ${showForm ? "at-create-toggle-open" : ""}`}
-            onClick={() => setShowForm(!showForm)}
-          >
-            <span className="at-create-toggle-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+          {/* Create Range Toggle + Form */}
+          <div className="at-create-wrapper">
+            <button
+              className={`at-create-toggle ${showForm ? "at-create-toggle-open" : ""}`}
+              onClick={() => setShowForm(!showForm)}
+            >
+              <span className="at-create-toggle-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+              </span>
+              <span>New Trade Range</span>
+              <svg className="at-create-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="6 9 12 15 18 9" />
               </svg>
-            </span>
-            <span>New Trade Range</span>
-            <svg className="at-create-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </button>
+            </button>
 
-          {/* Create New Range Form */}
-          {showForm && (
-            <div className="at-form-card">
+            {showForm && (
+              <div className="at-form-card">
               <form className="at-form" onSubmit={handleCreateRange}>
                 <div className="at-form-grid">
                   <div className="at-form-group">
@@ -566,7 +564,7 @@ export default function AutoTradeRange() {
                     <input
                       type="number"
                       value={formLower}
-                      onChange={e => setFormLower(e.target.value)}
+                      onChange={e => { setFormLower(e.target.value); setFormError(""); }}
                       className="at-input"
                       placeholder="Buy when price drops to..."
                       min="0"
@@ -581,7 +579,7 @@ export default function AutoTradeRange() {
                     <input
                       type="number"
                       value={formUpper}
-                      onChange={e => setFormUpper(e.target.value)}
+                      onChange={e => { setFormUpper(e.target.value); setFormError(""); }}
                       className="at-input"
                       placeholder="Sell when price rises to..."
                       min="0"
@@ -593,7 +591,7 @@ export default function AutoTradeRange() {
                     <input
                       type="number"
                       value={formQty}
-                      onChange={e => setFormQty(e.target.value)}
+                      onChange={e => { setFormQty(e.target.value); setFormError(""); }}
                       className="at-input"
                       placeholder={`Amount of ${formToken}`}
                       min="0"
@@ -666,7 +664,8 @@ export default function AutoTradeRange() {
                 </div>
               </form>
             </div>
-          )}
+            )}
+          </div>
 
           {/* Active Ranges */}
           {loading ? (
@@ -694,7 +693,6 @@ export default function AutoTradeRange() {
               {ranges.map(range => {
                 const p = wazirxPrices[range.token];
                 const currentPrice = p?.priceInr || 0;
-                const inRange = currentPrice >= range.lowerPrice && currentPrice <= range.upperPrice;
                 const belowRange = currentPrice < range.lowerPrice;
                 const aboveRange = currentPrice > range.upperPrice;
 
