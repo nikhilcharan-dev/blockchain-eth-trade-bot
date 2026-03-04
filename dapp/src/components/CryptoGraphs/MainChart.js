@@ -19,7 +19,7 @@ ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Tooltip,
 
 const WAZIRX_KLINES_URL = "https://api.wazirx.com/sapi/v1/klines";
 const WAZIRX_TICKER_URL = "https://api.wazirx.com/sapi/v1/ticker/24hr";
-const WAZIRX_DEPTH_URL = "https://api.wazirx.com/sapi/v1/depth";
+const WAZIRX_DEPTH_URL = "/api/wazirx/depth";
 const WAZIRX_WS_URL = "wss://stream.wazirx.com/stream";
 
 const TRADE_SYMBOLS = ["BTC", "ETH", "SOL"];
