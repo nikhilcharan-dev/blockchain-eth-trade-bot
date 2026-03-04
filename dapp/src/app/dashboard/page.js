@@ -146,7 +146,7 @@ const NavigationBar = ({ username, activeTab, tabs, onTabChange, onLogout, widge
   return (
     <nav className="dashboard-nav">
       <div className="nav-left">
-        <h1 className="nav-logo">CryptoDash</h1>
+        <h1 className="nav-logo">Crypto<span className="nav-logo-accent">Dash</span></h1>
         <div className="nav-tabs">
           {tabs.map(tab => (
             <button
@@ -289,7 +289,7 @@ const Footer = () => {
   return (
     <footer className="dashboard-footer">
       <div className="footer-content">
-        <span className="footer-brand">CryptoDash</span>
+        <span className="footer-brand">Crypto<span className="footer-brand-accent">Dash</span></span>
         <span className="footer-divider">|</span>
         <span className="footer-text">Real-time data from WazirX &amp; Binance</span>
         <span className="footer-divider">|</span>

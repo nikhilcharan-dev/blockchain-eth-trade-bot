@@ -35,7 +35,7 @@
 .at-container button:focus-visible,
 .at-container input:focus-visible,
 .at-container select:focus-visible {
-  outline: 2px solid rgba(99, 102, 241, 0.6);
+  outline: 2px solid rgba(229, 57, 53, 0.6);
   outline-offset: 2px;
 }
 
@@ -78,11 +78,11 @@
   gap: 8px;
   font-size: 14px;
   font-weight: 500;
-  color: #a5b4fc;
+  color: #ff8a80;
   margin-top: 8px;
   padding: 10px 20px;
-  background: rgba(99, 102, 241, 0.08);
-  border: 1px solid rgba(99, 102, 241, 0.15);
+  background: rgba(229, 57, 53, 0.08);
+  border: 1px solid rgba(229, 57, 53, 0.15);
   border-radius: 10px;
 }
 
@@ -299,10 +299,10 @@
   flex-shrink: 0;
 }
 
-.at-metric-icon-ranges { background: rgba(99, 102, 241, 0.12); color: #a5b4fc; }
+.at-metric-icon-ranges { background: rgba(229, 57, 53, 0.12); color: #ff8a80; }
 .at-metric-icon-trades { background: rgba(0, 230, 118, 0.1); color: #00e676; }
 .at-metric-icon-pl { background: rgba(255, 213, 79, 0.1); color: #ffd54f; }
-.at-metric-icon-total { background: rgba(165, 180, 252, 0.1); color: #a5b4fc; }
+.at-metric-icon-total { background: rgba(255, 138, 128, 0.1); color: #ff8a80; }
 .at-metric-icon-win { background: rgba(255, 152, 0, 0.1); color: #ffab40; }
 
 .at-metric-data {
@@ -361,7 +361,7 @@
 
 .at-nav-tab-active {
   color: #fff;
-  background: rgba(99, 102, 241, 0.12);
+  background: rgba(229, 57, 53, 0.12);
   font-weight: 600;
 }
 
@@ -375,8 +375,8 @@
 }
 
 .at-nav-tab-active .at-nav-badge {
-  background: rgba(99, 102, 241, 0.2);
-  color: #a5b4fc;
+  background: rgba(229, 57, 53, 0.2);
+  color: #ff8a80;
 }
 
 /* ═══ TRADE RANGES SECTION ═══ */
@@ -398,9 +398,9 @@
   align-items: center;
   gap: 10px;
   width: 100%;
-  background: rgba(99, 102, 241, 0.06);
-  border: 1px dashed rgba(99, 102, 241, 0.25);
-  color: #a5b4fc;
+  background: rgba(229, 57, 53, 0.06);
+  border: 1px dashed rgba(229, 57, 53, 0.25);
+  color: #ff8a80;
   padding: 14px 20px;
   border-radius: 14px;
   font-size: 15px;
@@ -410,13 +410,13 @@
 }
 
 .at-create-toggle:hover {
-  background: rgba(99, 102, 241, 0.1);
-  border-color: rgba(99, 102, 241, 0.35);
+  background: rgba(229, 57, 53, 0.1);
+  border-color: rgba(229, 57, 53, 0.35);
 }
 
 .at-create-toggle-open {
   border-style: solid;
-  background: rgba(99, 102, 241, 0.1);
+  background: rgba(229, 57, 53, 0.1);
   border-radius: 14px 14px 0 0;
 }
 
@@ -424,7 +424,7 @@
   width: 28px;
   height: 28px;
   border-radius: 8px;
-  background: rgba(99, 102, 241, 0.15);
+  background: rgba(229, 57, 53, 0.15);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -505,9 +505,9 @@
 
 .at-select:focus,
 .at-input:focus {
-  border-color: rgba(99, 102, 241, 0.5);
+  border-color: rgba(229, 57, 53, 0.5);
   background: rgba(255, 255, 255, 0.06);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.08);
+  box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.08);
 }
 
 .at-select {
@@ -550,9 +550,9 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  background: rgba(99, 102, 241, 0.1);
-  color: #a5b4fc;
-  border: 1px solid rgba(99, 102, 241, 0.2);
+  background: rgba(229, 57, 53, 0.1);
+  color: #ff8a80;
+  border: 1px solid rgba(229, 57, 53, 0.2);
   padding: 4px 10px;
   border-radius: 6px;
   font-size: 11px;
@@ -563,7 +563,7 @@
 }
 
 .at-autofill:hover {
-  background: rgba(99, 102, 241, 0.18);
+  background: rgba(229, 57, 53, 0.18);
 }
 
 .at-form-hint {
@@ -602,10 +602,10 @@
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: #a5b4fc;
+  background: #ff8a80;
   border: 2px solid rgba(255, 255, 255, 0.2);
   transform: translate(-50%, -50%);
-  box-shadow: 0 0 10px rgba(165, 180, 252, 0.4);
+  box-shadow: 0 0 10px rgba(255, 138, 128, 0.4);
   transition: left 0.5s ease;
 }
 
@@ -621,7 +621,7 @@
 
 .at-preview-now {
   font-size: 10px;
-  color: #a5b4fc;
+  color: #ff8a80;
   text-transform: uppercase;
   font-weight: 700;
   letter-spacing: 0.5px;
@@ -666,7 +666,7 @@
 
 .at-submit {
   margin-left: auto;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: linear-gradient(135deg, #e53935, #c62828);
   color: #fff;
   border: none;
   padding: 12px 28px;
@@ -681,7 +681,7 @@
 .at-submit:hover:not(:disabled) {
   filter: brightness(1.1);
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 4px 16px rgba(229, 57, 53, 0.3);
 }
 
 .at-submit:disabled {
@@ -704,7 +704,7 @@
   width: 28px;
   height: 28px;
   border: 2.5px solid rgba(255, 255, 255, 0.08);
-  border-top-color: #6366f1;
+  border-top-color: #e53935;
   border-radius: 50%;
   animation: at-spin 0.8s linear infinite;
 }
@@ -746,9 +746,9 @@
 
 .at-empty-cta {
   margin-top: 8px;
-  background: rgba(99, 102, 241, 0.12);
-  color: #a5b4fc;
-  border: 1px solid rgba(99, 102, 241, 0.25);
+  background: rgba(229, 57, 53, 0.12);
+  color: #ff8a80;
+  border: 1px solid rgba(229, 57, 53, 0.25);
   padding: 10px 24px;
   border-radius: 10px;
   font-size: 14px;
@@ -758,7 +758,7 @@
 }
 
 .at-empty-cta:hover {
-  background: rgba(99, 102, 241, 0.2);
+  background: rgba(229, 57, 53, 0.2);
 }
 
 /* ═══ RANGE CARDS GRID ═══ */
@@ -788,7 +788,7 @@
   left: 0;
   right: 0;
   height: 2px;
-  background: rgba(99, 102, 241, 0.3);
+  background: rgba(229, 57, 53, 0.3);
   transition: background 0.3s;
 }
 
@@ -981,8 +981,8 @@
 }
 
 .at-bar-dot-hold {
-  background: #a5b4fc;
-  box-shadow: 0 0 10px rgba(165, 180, 252, 0.4);
+  background: #ff8a80;
+  box-shadow: 0 0 10px rgba(255, 138, 128, 0.4);
 }
 
 .at-range-bar-prices {
@@ -1300,7 +1300,7 @@
 }
 
 .at-stat-card-today {
-  border-color: rgba(99, 102, 241, 0.15);
+  border-color: rgba(229, 57, 53, 0.15);
 }
 
 .at-stat-card-header {
@@ -1313,8 +1313,8 @@
   width: 32px;
   height: 32px;
   border-radius: 9px;
-  background: rgba(99, 102, 241, 0.1);
-  color: #a5b4fc;
+  background: rgba(229, 57, 53, 0.1);
+  color: #ff8a80;
   display: flex;
   align-items: center;
   justify-content: center;

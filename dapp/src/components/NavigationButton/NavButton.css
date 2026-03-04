@@ -20,9 +20,9 @@
 }
 
 .nav-button button:hover {
-  background: rgba(99, 102, 241, 0.15);
-  border-color: rgba(99, 102, 241, 0.3);
-  box-shadow: 0 4px 30px rgba(99, 102, 241, 0.15);
+  background: rgba(229, 57, 53, 0.15);
+  border-color: rgba(229, 57, 53, 0.3);
+  box-shadow: 0 4px 30px rgba(229, 57, 53, 0.15);
 }
 
 @media (max-width: 480px) {

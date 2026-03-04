@@ -21,6 +21,8 @@ function WidgetContent({ selectedCoin, setSelectedCoin, onClose }) {
   const [alerts, setAlerts] = useState([]);
   const [log, setLog] = useState([]);
   const [flash, setFlash] = useState(null);
+  const [portfolio, setPortfolio] = useState([]);
+  const [portfolioLoading, setPortfolioLoading] = useState(false);
   const prevPriceRef = useRef(null);
 
   useEffect(() => {
@@ -33,12 +35,39 @@ function WidgetContent({ selectedCoin, setSelectedCoin, onClose }) {
     return () => clearInterval(iv);
   }, []);
 
+  // Fetch portfolio data
+  useEffect(() => {
+    const fetchPortfolio = async () => {
+      setPortfolioLoading(true);
+      try {
+        const resp = await fetch("/api/wazirx/portfolio", { method: "POST" });
+        if (resp.ok) {
+          const data = await resp.json();
+          setPortfolio(Array.isArray(data) ? data : []);
+        }
+      } catch {}
+      setPortfolioLoading(false);
+    };
+    fetchPortfolio();
+    const iv = setInterval(fetchPortfolio, 30000);
+    return () => clearInterval(iv);
+  }, []);
+
   const coin = wazirxPrices[selectedCoin];
   const price = coin?.priceInr;
   const change = coin?.change;
   const high = coin?.highInr;
   const low = coin?.lowInr;
   const vol = coin?.volume;
+
+  // Portfolio data for selected coin
+  const holding = portfolio.find(h => h.symbol === selectedCoin);
+  const holdingQty = holding ? holding.amount : 0;
+  const avgBuy = holding?.avgBuyPrice || 0;
+  const invested = holding?.totalInvested || 0;
+  const currentValue = holdingQty && price ? holdingQty * price : 0;
+  const plValue = invested > 0 ? currentValue - invested : 0;
+  const plPercent = invested > 0 ? (plValue / invested) * 100 : 0;
 
   useEffect(() => {
     if (price && prevPriceRef.current !== null && prevPriceRef.current !== price) {
@@ -56,19 +85,23 @@ function WidgetContent({ selectedCoin, setSelectedCoin, onClose }) {
     <div className="fw-root">
       <div className="fw-header">
         <div className="fw-title-row">
-          <span className="fw-logo">CryptoDash</span>
+          <span className="fw-logo">Crypto<span className="fw-logo-accent">Dash</span></span>
           <button className="fw-close" onClick={onClose} title="Close widget">&times;</button>
         </div>
         <div className="fw-coin-selector">
-          {COINS.map(c => (
-            <button
-              key={c}
-              className={`fw-coin-btn ${selectedCoin === c ? "fw-coin-active" : ""}`}
-              onClick={() => setSelectedCoin(c)}
-            >
-              {c}
-            </button>
-          ))}
+          {COINS.map(c => {
+            const h = portfolio.find(p => p.symbol === c);
+            return (
+              <button
+                key={c}
+                className={`fw-coin-btn ${selectedCoin === c ? "fw-coin-active" : ""} ${h && h.amount > 0 ? "fw-coin-held" : ""}`}
+                onClick={() => setSelectedCoin(c)}
+              >
+                {c}
+                {h && h.amount > 0 && <span className="fw-coin-dot" />}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -83,6 +116,49 @@ function WidgetContent({ selectedCoin, setSelectedCoin, onClose }) {
             <span className="fw-change-label">24h</span>
           </div>
         </div>
+
+        {/* Portfolio Section */}
+        {holdingQty > 0 && (
+          <div className="fw-portfolio">
+            <div className="fw-section-title">Your Position</div>
+            <div className="fw-portfolio-grid">
+              <div className="fw-portfolio-item">
+                <span className="fw-portfolio-label">Holdings</span>
+                <span className="fw-portfolio-value">{holdingQty.toFixed(6)} {selectedCoin}</span>
+              </div>
+              <div className="fw-portfolio-item">
+                <span className="fw-portfolio-label">Avg Buy</span>
+                <span className="fw-portfolio-value">{avgBuy > 0 ? formatPrice(avgBuy) : "---"}</span>
+              </div>
+              <div className="fw-portfolio-item">
+                <span className="fw-portfolio-label">Invested</span>
+                <span className="fw-portfolio-value">{invested > 0 ? formatPrice(invested) : "---"}</span>
+              </div>
+              <div className="fw-portfolio-item">
+                <span className="fw-portfolio-label">Current Value</span>
+                <span className="fw-portfolio-value">{currentValue > 0 ? formatPrice(currentValue) : "---"}</span>
+              </div>
+              <div className="fw-portfolio-pl">
+                <span className="fw-portfolio-label">P/L</span>
+                <span className={`fw-portfolio-pl-value ${plValue >= 0 ? "fw-positive" : "fw-negative"}`}>
+                  {plValue >= 0 ? "+" : ""}{currencySymbol}{convert(Math.abs(plValue)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  <span className="fw-pl-pct">({plPercent >= 0 ? "+" : ""}{plPercent.toFixed(2)}%)</span>
+                </span>
+              </div>
+            </div>
+            <div className="fw-trade-actions">
+              <a href="/dashboard" className="fw-trade-btn fw-buy-btn" target="_blank" rel="noopener">Buy</a>
+              <a href="/dashboard" className="fw-trade-btn fw-sell-btn" target="_blank" rel="noopener">Sell</a>
+            </div>
+          </div>
+        )}
+
+        {holdingQty === 0 && !portfolioLoading && (
+          <div className="fw-no-position">
+            <span className="fw-no-position-text">No {selectedCoin} in wallet</span>
+            <a href="/dashboard" className="fw-trade-btn fw-buy-btn" target="_blank" rel="noopener">Buy {selectedCoin}</a>
+          </div>
+        )}
 
         <div className="fw-stats-grid">
           <div className="fw-stat">
@@ -151,15 +227,18 @@ const WIDGET_CSS = `
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{margin:0;padding:0;background:#0d0d11;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#e0e0e0;overflow:hidden}
 .fw-root{display:flex;flex-direction:column;height:100vh;width:100%;overflow:hidden}
-.fw-header{background:linear-gradient(135deg,#12121a 0%,#1a1a2e 100%);padding:10px 14px 8px;border-bottom:1px solid rgba(255,255,255,0.06)}
+.fw-header{background:linear-gradient(135deg,#0f0f14 0%,#161620 100%);padding:10px 14px 8px;border-bottom:1px solid rgba(255,255,255,0.06)}
 .fw-title-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-.fw-logo{font-size:13px;font-weight:700;background:linear-gradient(135deg,#00e5ff,#7c4dff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:.5px}
+.fw-logo{font-size:14px;font-weight:700;color:#fff;letter-spacing:.5px}
+.fw-logo-accent{color:#e53935}
 .fw-close{background:none;border:none;color:rgba(255,255,255,0.4);font-size:18px;cursor:pointer;padding:0 4px;line-height:1}
 .fw-close:hover{color:#ff5252}
 .fw-coin-selector{display:flex;flex-wrap:wrap;gap:4px}
-.fw-coin-btn{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;color:rgba(255,255,255,0.5);font-size:10px;padding:3px 7px;cursor:pointer;transition:all .2s}
+.fw-coin-btn{position:relative;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;color:rgba(255,255,255,0.5);font-size:10px;padding:3px 7px;cursor:pointer;transition:all .2s}
 .fw-coin-btn:hover{background:rgba(255,255,255,0.08);color:#fff}
-.fw-coin-active{background:rgba(0,229,255,0.12);border-color:rgba(0,229,255,0.3);color:#00e5ff;font-weight:600}
+.fw-coin-active{background:rgba(229,57,53,0.12);border-color:rgba(229,57,53,0.35);color:#e53935;font-weight:600}
+.fw-coin-held{border-color:rgba(255,255,255,0.15)}
+.fw-coin-dot{position:absolute;top:-2px;right:-2px;width:5px;height:5px;border-radius:50%;background:#00e676}
 .fw-body{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:12px}
 .fw-body::-webkit-scrollbar{width:4px}
 .fw-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:2px}
@@ -172,6 +251,25 @@ body{margin:0;padding:0;background:#0d0d11;font-family:-apple-system,BlinkMacSys
 .fw-positive{color:#00e676}
 .fw-negative{color:#ff5252}
 .fw-change-label{font-size:10px;color:rgba(255,255,255,0.3);font-weight:400}
+
+.fw-portfolio{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:12px}
+.fw-portfolio-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin-top:6px}
+.fw-portfolio-item{display:flex;flex-direction:column;gap:1px}
+.fw-portfolio-label{font-size:9px;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:.5px}
+.fw-portfolio-value{font-size:12px;font-weight:600;color:#e0e0e0}
+.fw-portfolio-pl{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;margin-top:4px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.05)}
+.fw-portfolio-pl-value{font-size:14px;font-weight:700;display:flex;align-items:baseline;gap:4px}
+.fw-pl-pct{font-size:11px;font-weight:600;opacity:0.85}
+.fw-trade-actions{display:flex;gap:8px;margin-top:8px}
+.fw-trade-btn{flex:1;text-align:center;padding:6px 0;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:.5px;transition:all .2s}
+.fw-buy-btn{background:rgba(0,230,118,0.12);color:#00e676;border:1px solid rgba(0,230,118,0.25)}
+.fw-buy-btn:hover{background:rgba(0,230,118,0.2)}
+.fw-sell-btn{background:rgba(255,82,82,0.12);color:#ff5252;border:1px solid rgba(255,82,82,0.25)}
+.fw-sell-btn:hover{background:rgba(255,82,82,0.2)}
+.fw-no-position{display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:10px 12px}
+.fw-no-position-text{font-size:11px;color:rgba(255,255,255,0.35)}
+.fw-no-position .fw-trade-btn{flex:none;padding:5px 16px}
+
 .fw-stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .fw-stat{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:2px}
 .fw-stat-label{font-size:10px;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:.5px}
@@ -184,12 +282,12 @@ body{margin:0;padding:0;background:#0d0d11;font-family:-apple-system,BlinkMacSys
 .fw-alert-down{color:#ff5252}
 .fw-log-row{display:flex;align-items:center;gap:6px;padding:4px 0;font-size:11px;border-bottom:1px solid rgba(255,255,255,0.03)}
 .fw-log-row:last-child{border-bottom:none}
-.fw-log-row strong{color:#00e5ff;font-size:10px;min-width:34px}
+.fw-log-row strong{color:#e53935;font-size:10px;min-width:34px}
 .fw-log-msg{flex:1;color:rgba(255,255,255,0.6);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fw-log-time{color:rgba(255,255,255,0.25);font-size:10px;white-space:nowrap}
 .fw-log-anomaly{background:rgba(255,152,0,0.06);border-radius:4px;padding:4px 6px}
 .fw-footer{padding:8px 14px;border-top:1px solid rgba(255,255,255,0.06);font-size:10px;color:rgba(255,255,255,0.3);display:flex;align-items:center;gap:6px}
-.fw-feed-dot{width:6px;height:6px;border-radius:50%;background:#00e676;animation:fw-pulse 2s infinite}
+.fw-feed-dot{width:6px;height:6px;border-radius:50%;background:#e53935;animation:fw-pulse 2s infinite}
 @keyframes fw-pulse{0%,100%{opacity:1}50%{opacity:.3}}
 `;
 
@@ -231,7 +329,7 @@ export default function FloatingWidget({ active, onClose }) {
         try {
           win = await window.documentPictureInPicture.requestWindow({
             width: 380,
-            height: 520,
+            height: 580,
           });
         } catch {
           win = null;
@@ -244,7 +342,7 @@ export default function FloatingWidget({ active, onClose }) {
         win = window.open(
           "",
           "CryptoDashWidget",
-          `width=380,height=520,top=60,left=${left},resizable=yes,scrollbars=no,toolbar=no,menubar=no,location=no,status=no`
+          `width=380,height=580,top=60,left=${left},resizable=yes,scrollbars=no,toolbar=no,menubar=no,location=no,status=no`
         );
       }
 

@@ -12,9 +12,9 @@
   top: 10px;
   z-index: 10;
   padding: 6px 14px;
-  background: rgba(99, 102, 241, 0.15);
-  color: #a5b4fc;
-  border: 1px solid rgba(99, 102, 241, 0.25);
+  background: rgba(229, 57, 53, 0.15);
+  color: #ff8a80;
+  border: 1px solid rgba(229, 57, 53, 0.25);
   border-radius: 8px;
   font-size: 12px;
   font-weight: 600;
@@ -23,7 +23,7 @@
 }
 
 .trade-toggle-btn:hover {
-  background: rgba(99, 102, 241, 0.25);
+  background: rgba(229, 57, 53, 0.25);
 }
 
 .eth-chart-container {
@@ -52,7 +52,7 @@
 }
 
 .eth-chart-container select:focus {
-  border-color: rgba(99, 102, 241, 0.5);
+  border-color: rgba(229, 57, 53, 0.5);
 }
 
 .eth-chart-container select option {
@@ -139,7 +139,7 @@
 
 .chart-tf-active {
   color: #fff;
-  background: rgba(99, 102, 241, 0.25);
+  background: rgba(229, 57, 53, 0.25);
 }
 
 .eth-chart-sidebar {
@@ -176,13 +176,13 @@
 }
 
 .eth-chart-sidebar input:focus {
-  border-color: rgba(99, 102, 241, 0.5);
+  border-color: rgba(229, 57, 53, 0.5);
 }
 
 .eth-chart-sidebar button {
   width: 100%;
   padding: 10px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: linear-gradient(135deg, #e53935, #c62828);
   color: white;
   border: none;
   border-radius: 10px;
@@ -435,7 +435,7 @@
 }
 
 .multi-chart-select:focus {
-  border-color: rgba(99, 102, 241, 0.5);
+  border-color: rgba(229, 57, 53, 0.5);
 }
 
 .multi-chart-select option {
@@ -461,7 +461,7 @@
 }
 
 .multi-chart-input:focus {
-  border-color: rgba(99, 102, 241, 0.5);
+  border-color: rgba(229, 57, 53, 0.5);
 }
 
 @media (max-width: 768px) {
@@ -593,7 +593,7 @@
 
 .candlestick-int-active {
   color: #fff;
-  background: rgba(99, 102, 241, 0.2);
+  background: rgba(229, 57, 53, 0.2);
 }
 
 .candlestick-indicators {
@@ -613,7 +613,7 @@
 }
 
 .candlestick-ind-toggle input[type="checkbox"] {
-  accent-color: #6366f1;
+  accent-color: #e53935;
   cursor: pointer;
 }
 
@@ -664,7 +664,7 @@
 .pulse-wave span {
   width: 4px;
   border-radius: 2px;
-  background: #6366f1;
+  background: #e53935;
   animation: pulseWave 1.2s ease-in-out infinite;
 }
 
@@ -693,7 +693,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #8b5cf6;
+  background: #c62828;
   animation: orbit 1.4s ease-in-out infinite;
 }
 
