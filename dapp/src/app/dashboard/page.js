@@ -16,6 +16,7 @@ import ExchangeConnect from "@/components/ExchangeConnect/ExchangeConnect"
 import AiChat from "@/components/AiChat/AiChat"
 import AiChatWidget from "@/components/AiChat/AiChatWidget"
 import AutoTradeRange from "@/components/AutoTradeRange/AutoTradeRange"
+import FloatingWidget from "@/components/FloatingWidget/FloatingWidget"
 import './styles.css'
 
 export default function DashboardPage() {
@@ -29,6 +30,7 @@ export default function DashboardPage() {
 function DashboardContent() {
   const [activeTab, setActiveTab] = useState('overview')
   const [username, setUsername] = useState('Guest')
+  const [widgetOpen, setWidgetOpen] = useState(false)
   const router = useRouter()
   const contentRef = useRef(null)
 
@@ -81,6 +83,8 @@ function DashboardContent() {
         tabs={tabs}
         onTabChange={setActiveTab}
         onLogout={handleLogout}
+        widgetOpen={widgetOpen}
+        onWidgetToggle={() => setWidgetOpen(prev => !prev)}
       />
 
       <div ref={contentRef} className="dashboard-content">
@@ -130,12 +134,13 @@ function DashboardContent() {
       </div>
 
       {activeTab !== 'ai' && <AiChatWidget />}
+      <FloatingWidget active={widgetOpen} onClose={() => setWidgetOpen(false)} />
       <Footer />
     </section>
   )
 }
 
-const NavigationBar = ({ username, activeTab, tabs, onTabChange, onLogout }) => {
+const NavigationBar = ({ username, activeTab, tabs, onTabChange, onLogout, widgetOpen, onWidgetToggle }) => {
   const { currency, toggleCurrency } = useCurrency()
 
   return (
@@ -155,6 +160,19 @@ const NavigationBar = ({ username, activeTab, tabs, onTabChange, onLogout }) => 
         </div>
       </div>
       <div className="nav-right">
+        <button
+          className={`nav-widget-toggle ${widgetOpen ? "nav-widget-active" : ""}`}
+          onClick={onWidgetToggle}
+          title={widgetOpen ? "Close floating widget" : "Open floating widget"}
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none" />
+            <rect x="3" y="3" width="6" height="5" rx="1" fill="currentColor" opacity="0.7" />
+            <line x1="3" y1="10.5" x2="13" y2="10.5" stroke="currentColor" strokeWidth="1" opacity="0.4" />
+            <line x1="3" y1="12.5" x2="10" y2="12.5" stroke="currentColor" strokeWidth="1" opacity="0.4" />
+          </svg>
+          <span className="nav-widget-label">Ticker</span>
+        </button>
         <button className="currency-toggle" onClick={toggleCurrency}>
           <span className={`currency-option ${currency === "INR" ? "currency-active" : ""}`}>
             INR

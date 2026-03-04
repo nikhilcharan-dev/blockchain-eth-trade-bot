@@ -107,6 +107,43 @@
   background: rgba(255, 82, 82, 0.2);
 }
 
+/* Floating Widget Toggle */
+.nav-widget-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.nav-widget-toggle:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.nav-widget-active {
+  background: rgba(0, 229, 255, 0.1);
+  border-color: rgba(0, 229, 255, 0.3);
+  color: #00e5ff;
+}
+
+.nav-widget-label {
+  font-size: 12px;
+}
+
+@media (max-width: 768px) {
+  .nav-widget-label {
+    display: none;
+  }
+}
+
 /* Currency Toggle */
 .currency-toggle {
   display: flex;
