@@ -21,9 +21,9 @@
 }
 
 .watchlist-add-btn {
-  background: rgba(99, 102, 241, 0.2);
-  color: #a5b4fc;
-  border: 1px solid rgba(99, 102, 241, 0.3);
+  background: rgba(229, 57, 53, 0.2);
+  color: #ff8a80;
+  border: 1px solid rgba(229, 57, 53, 0.3);
   padding: 6px 16px;
   border-radius: 8px;
   font-size: 13px;
@@ -33,7 +33,7 @@
 }
 
 .watchlist-add-btn:hover {
-  background: rgba(99, 102, 241, 0.35);
+  background: rgba(229, 57, 53, 0.35);
 }
 
 .watchlist-add-panel {
@@ -59,8 +59,8 @@
 }
 
 .watchlist-token-chip:hover {
-  background: rgba(99, 102, 241, 0.25);
-  border-color: rgba(99, 102, 241, 0.4);
+  background: rgba(229, 57, 53, 0.25);
+  border-color: rgba(229, 57, 53, 0.4);
   color: #fff;
 }
 

@@ -27,10 +27,13 @@
 
 .nav-logo {
   font-size: 22px;
-  background: linear-gradient(135deg, #a5b4fc, #6366f1);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+
+.nav-logo-accent {
+  color: #e53935;
+  font-weight: 800;
 }
 
 .nav-tabs {
@@ -57,7 +60,7 @@
 
 .nav-tab-active {
   color: #fff;
-  background: rgba(99, 102, 241, 0.15);
+  background: rgba(229, 57, 53, 0.15);
 }
 
 .nav-right {
@@ -76,7 +79,7 @@
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: #e53935;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -107,6 +110,43 @@
   background: rgba(255, 82, 82, 0.2);
 }
 
+/* Floating Widget Toggle */
+.nav-widget-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.nav-widget-toggle:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.nav-widget-active {
+  background: rgba(229, 57, 53, 0.12);
+  border-color: rgba(229, 57, 53, 0.35);
+  color: #e53935;
+}
+
+.nav-widget-label {
+  font-size: 12px;
+}
+
+@media (max-width: 768px) {
+  .nav-widget-label {
+    display: none;
+  }
+}
+
 /* Currency Toggle */
 .currency-toggle {
   display: flex;
@@ -130,7 +170,7 @@
 
 .currency-active {
   color: #fff;
-  background: rgba(99, 102, 241, 0.25);
+  background: rgba(229, 57, 53, 0.25);
 }
 
 /* Dashboard Content */
@@ -156,10 +196,11 @@
 .footer-brand {
   font-weight: 700;
   font-size: 15px;
-  background: linear-gradient(135deg, #a5b4fc, #6366f1);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #fff;
+}
+
+.footer-brand-accent {
+  color: #e53935;
 }
 
 .footer-text {
@@ -196,7 +237,7 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: #e53935;
   display: flex;
   align-items: center;
   justify-content: center;

@@ -88,7 +88,7 @@
 }
 
 .exchange-input:focus {
-  border-color: rgba(99, 102, 241, 0.5);
+  border-color: rgba(229, 57, 53, 0.5);
 }
 
 select.exchange-input {
@@ -108,7 +108,7 @@ select.exchange-input {
 }
 
 .exchange-connect-btn {
-  background: #6366f1;
+  background: #e53935;
   color: #fff;
   border: none;
   padding: 10px 24px;
@@ -189,7 +189,7 @@ select.exchange-input {
 
 .exchange-tab-active {
   color: #fff;
-  background: rgba(99, 102, 241, 0.15);
+  background: rgba(229, 57, 53, 0.15);
 }
 
 /* Prices & Data Table */
@@ -220,9 +220,9 @@ select.exchange-input {
 }
 
 .exchange-refresh-btn {
-  background: rgba(99, 102, 241, 0.12);
-  color: #a5b4fc;
-  border: 1px solid rgba(99, 102, 241, 0.25);
+  background: rgba(229, 57, 53, 0.12);
+  color: #ff8a80;
+  border: 1px solid rgba(229, 57, 53, 0.25);
   padding: 6px 14px;
   border-radius: 8px;
   font-size: 12px;
@@ -232,7 +232,7 @@ select.exchange-input {
 }
 
 .exchange-refresh-btn:hover {
-  background: rgba(99, 102, 241, 0.2);
+  background: rgba(229, 57, 53, 0.2);
 }
 
 .exchange-error {
@@ -380,9 +380,9 @@ select.exchange-input {
 }
 
 .trade-mkt-btn {
-  background: rgba(99, 102, 241, 0.12);
-  color: #a5b4fc;
-  border: 1px solid rgba(99, 102, 241, 0.25);
+  background: rgba(229, 57, 53, 0.12);
+  color: #ff8a80;
+  border: 1px solid rgba(229, 57, 53, 0.25);
   padding: 0 12px;
   border-radius: 8px;
   font-size: 11px;
@@ -393,7 +393,7 @@ select.exchange-input {
 }
 
 .trade-mkt-btn:hover {
-  background: rgba(99, 102, 241, 0.2);
+  background: rgba(229, 57, 53, 0.2);
 }
 
 .trade-total {
@@ -420,7 +420,7 @@ select.exchange-input {
 }
 
 .trade-auto-alert input[type="checkbox"] {
-  accent-color: #6366f1;
+  accent-color: #e53935;
   cursor: pointer;
 }
 
@@ -499,7 +499,7 @@ select.exchange-input {
 }
 
 .token-group-expanded {
-  border-color: rgba(99, 102, 241, 0.2);
+  border-color: rgba(229, 57, 53, 0.2);
 }
 
 .token-group-header {
