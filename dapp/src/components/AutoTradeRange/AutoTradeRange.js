@@ -22,7 +22,14 @@ const SUPPORTED_SYMBOLS = [
   "AVAX", "TRX", "LINK", "MATIC", "SHIB", "LTC", "UNI",
 ];
 
-const ENGINE_INTERVAL = 15000; // 15 seconds
+const TOKEN_COLORS = {
+  BTC: "#f7931a", ETH: "#627eea", SOL: "#9945ff", XRP: "#00aae4",
+  BNB: "#f3ba2f", ADA: "#0033ad", DOGE: "#c2a633", DOT: "#e6007a",
+  AVAX: "#e84142", TRX: "#eb0029", LINK: "#2a5ada", MATIC: "#8247e5",
+  SHIB: "#ffa409", LTC: "#bfbbbb", UNI: "#ff007a",
+};
+
+const ENGINE_INTERVAL = 15000;
 
 export default function AutoTradeRange() {
   const {
@@ -39,7 +46,6 @@ export default function AutoTradeRange() {
   const [lastEngineRun, setLastEngineRun] = useState(null);
   const [engineError, setEngineError] = useState(null);
 
-  // Form state
   const [formToken, setFormToken] = useState("ETH");
   const [formLower, setFormLower] = useState("");
   const [formUpper, setFormUpper] = useState("");
@@ -48,14 +54,15 @@ export default function AutoTradeRange() {
   const [formSubmitting, setFormSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
   const [formSuccess, setFormSuccess] = useState("");
+  const [showForm, setShowForm] = useState(false);
 
-  // Sub-section view
   const [activeSection, setActiveSection] = useState("ranges");
+  const [expandedRange, setExpandedRange] = useState(null);
 
-  // Engine interval ref
   const engineRef = useRef(null);
+  const engineTickRef = useRef(0);
+  const [engineTick, setEngineTick] = useState(0);
 
-  // Check WazirX connection on mount
   useEffect(() => {
     fetch("/api/settings")
       .then(r => r.ok ? r.json() : null)
@@ -63,7 +70,6 @@ export default function AutoTradeRange() {
       .catch(() => {});
   }, []);
 
-  // Fetch ranges
   const fetchRanges = useCallback(async () => {
     try {
       const resp = await fetch("/api/trade-range");
@@ -74,7 +80,6 @@ export default function AutoTradeRange() {
     setLoading(false);
   }, []);
 
-  // Fetch logs & stats
   const fetchLogs = useCallback(async () => {
     try {
       const resp = await fetch("/api/trade-range/logs");
@@ -91,7 +96,6 @@ export default function AutoTradeRange() {
     fetchLogs();
   }, [fetchRanges, fetchLogs]);
 
-  // Execute engine cycle
   const runEngine = useCallback(async () => {
     setEngineError(null);
     try {
@@ -102,7 +106,8 @@ export default function AutoTradeRange() {
         return;
       }
       setLastEngineRun(new Date());
-      // If trades were executed, refresh data
+      engineTickRef.current += 1;
+      setEngineTick(engineTickRef.current);
       if (data.executed && data.executed.length > 0) {
         fetchRanges();
         fetchLogs();
@@ -112,13 +117,10 @@ export default function AutoTradeRange() {
     }
   }, [fetchRanges, fetchLogs]);
 
-  // Start / stop engine
   const startEngine = useCallback(() => {
     if (engineRef.current) return;
     setEngineRunning(true);
-    // Run immediately
     runEngine();
-    // Then every interval
     engineRef.current = setInterval(runEngine, ENGINE_INTERVAL);
   }, [runEngine]);
 
@@ -130,14 +132,12 @@ export default function AutoTradeRange() {
     setEngineRunning(false);
   }, []);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (engineRef.current) clearInterval(engineRef.current);
     };
   }, []);
 
-  // Auto-start engine if there are active ranges
   useEffect(() => {
     const hasActive = ranges.some(r => r.active);
     if (hasActive && apiConnected && !engineRunning) {
@@ -147,7 +147,6 @@ export default function AutoTradeRange() {
     }
   }, [ranges, apiConnected, engineRunning, startEngine, stopEngine]);
 
-  // Create new range
   const handleCreateRange = async (e) => {
     e.preventDefault();
     setFormError("");
@@ -162,7 +161,6 @@ export default function AutoTradeRange() {
     if (upper <= lower) { setFormError("Upper price must be greater than lower price"); return; }
     if (isNaN(qty) || qty <= 0) { setFormError("Enter a valid quantity"); return; }
 
-    // Validate quantity against holdings
     const currentPrice = wazirxPrices[formToken]?.priceInr;
     if (!currentPrice) { setFormError("Could not fetch current price for " + formToken); return; }
 
@@ -182,12 +180,13 @@ export default function AutoTradeRange() {
       const data = await resp.json();
       if (!resp.ok) throw new Error(data.error || "Failed to create range");
 
-      setFormSuccess(`Range created for ${formToken}: Buy @ ${"\u20B9"}${lower.toLocaleString("en-IN")} / Sell @ ${"\u20B9"}${upper.toLocaleString("en-IN")}`);
+      setFormSuccess(`Range created for ${formToken}: Buy @ \u20B9${lower.toLocaleString("en-IN")} / Sell @ \u20B9${upper.toLocaleString("en-IN")}`);
       setFormLower("");
       setFormUpper("");
       setFormQty("");
       setFormMaxTrades("0");
       fetchRanges();
+      setTimeout(() => setFormSuccess(""), 5000);
     } catch (err) {
       setFormError(err.message);
     } finally {
@@ -195,7 +194,6 @@ export default function AutoTradeRange() {
     }
   };
 
-  // Toggle range active state
   const toggleRange = async (rangeId, active) => {
     try {
       await fetch("/api/trade-range", {
@@ -207,7 +205,6 @@ export default function AutoTradeRange() {
     } catch {}
   };
 
-  // Delete range
   const deleteRange = async (rangeId) => {
     try {
       await fetch(`/api/trade-range?id=${rangeId}`, { method: "DELETE" });
@@ -216,12 +213,10 @@ export default function AutoTradeRange() {
     } catch {}
   };
 
-  // Pre-fill lower/upper from current price
   const prefillPrices = () => {
     const p = wazirxPrices[formToken];
     if (!p) return;
     const price = p.priceInr;
-    // Default range: -3% for lower, +3% for upper
     setFormLower((price * 0.97).toFixed(2));
     setFormUpper((price * 1.03).toFixed(2));
   };
@@ -229,10 +224,8 @@ export default function AutoTradeRange() {
   const currentFormPrice = wazirxPrices[formToken]?.priceInr;
   const formTotal = (parseFloat(formQty) || 0) * (currentFormPrice || 0);
 
-  // Compute chart data
   const chartData = useMemo(() => {
     if (dailyStats.length === 0) return null;
-
     return {
       labels: dailyStats.map(d => {
         const dt = new Date(d.date);
@@ -243,31 +236,37 @@ export default function AutoTradeRange() {
           label: "Buy Volume (INR)",
           data: dailyStats.map(d => d.buyVolume),
           borderColor: "#00e676",
-          backgroundColor: "rgba(0, 230, 118, 0.1)",
+          backgroundColor: "rgba(0, 230, 118, 0.08)",
           fill: true,
-          tension: 0.3,
-          pointRadius: 3,
+          tension: 0.4,
+          pointRadius: 2,
+          pointHoverRadius: 5,
           pointBackgroundColor: "#00e676",
+          borderWidth: 2,
         },
         {
           label: "Sell Volume (INR)",
           data: dailyStats.map(d => d.sellVolume),
           borderColor: "#ff5252",
-          backgroundColor: "rgba(255, 82, 82, 0.1)",
+          backgroundColor: "rgba(255, 82, 82, 0.08)",
           fill: true,
-          tension: 0.3,
-          pointRadius: 3,
+          tension: 0.4,
+          pointRadius: 2,
+          pointHoverRadius: 5,
           pointBackgroundColor: "#ff5252",
+          borderWidth: 2,
         },
         {
           label: "P/L (INR)",
           data: dailyStats.map(d => d.profitLoss),
           borderColor: "#a5b4fc",
-          backgroundColor: "rgba(165, 180, 252, 0.1)",
+          backgroundColor: "rgba(165, 180, 252, 0.08)",
           fill: true,
-          tension: 0.3,
-          pointRadius: 3,
+          tension: 0.4,
+          pointRadius: 2,
+          pointHoverRadius: 5,
           pointBackgroundColor: "#a5b4fc",
+          borderWidth: 2,
         },
       ],
     };
@@ -279,56 +278,99 @@ export default function AutoTradeRange() {
     interaction: { mode: "index", intersect: false },
     plugins: {
       legend: {
-        labels: { color: "rgba(255,255,255,0.6)", font: { size: 12 } },
+        position: "top",
+        align: "end",
+        labels: {
+          color: "rgba(255,255,255,0.5)",
+          font: { size: 11 },
+          boxWidth: 8,
+          boxHeight: 8,
+          borderRadius: 4,
+          useBorderRadius: true,
+          padding: 16,
+        },
       },
       tooltip: {
-        backgroundColor: "rgba(0,0,0,0.85)",
+        backgroundColor: "rgba(10, 10, 10, 0.95)",
         titleColor: "#fff",
         bodyColor: "rgba(255,255,255,0.8)",
-        borderColor: "rgba(255,255,255,0.1)",
+        borderColor: "rgba(255,255,255,0.08)",
         borderWidth: 1,
+        padding: 12,
+        cornerRadius: 10,
+        displayColors: true,
+        boxWidth: 8,
+        boxHeight: 8,
         callbacks: {
-          label: (ctx) => `${ctx.dataset.label}: ${"\u20B9"}${Math.abs(ctx.parsed.y).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`,
+          label: (ctx) => `  ${ctx.dataset.label}: \u20B9${Math.abs(ctx.parsed.y).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`,
         },
       },
     },
     scales: {
       x: {
-        ticks: { color: "rgba(255,255,255,0.4)", font: { size: 11 } },
-        grid: { color: "rgba(255,255,255,0.04)" },
+        ticks: { color: "rgba(255,255,255,0.3)", font: { size: 10 }, maxRotation: 0 },
+        grid: { color: "rgba(255,255,255,0.03)", drawBorder: false },
+        border: { display: false },
       },
       y: {
         ticks: {
-          color: "rgba(255,255,255,0.4)",
-          font: { size: 11 },
-          callback: (v) => `${"\u20B9"}${v.toLocaleString("en-IN")}`,
+          color: "rgba(255,255,255,0.3)",
+          font: { size: 10 },
+          callback: (v) => `\u20B9${v.toLocaleString("en-IN")}`,
         },
-        grid: { color: "rgba(255,255,255,0.04)" },
+        grid: { color: "rgba(255,255,255,0.03)", drawBorder: false },
+        border: { display: false },
       },
     },
   };
 
   const activeRangeCount = ranges.filter(r => r.active).length;
 
+  const winRate = useMemo(() => {
+    if (!stats?.totalTrades) return 0;
+    const sells = stats.totalSells || 0;
+    if (!sells) return 0;
+    const profitableSells = logs.filter(l => l.side === "sell" && (l.profitLoss || 0) > 0).length;
+    return sells > 0 ? Math.round((profitableSells / sells) * 100) : 0;
+  }, [stats, logs]);
+
   const sections = [
-    { id: "ranges", label: "Trade Ranges" },
-    { id: "logs", label: "Trade Log" },
-    { id: "stats", label: "Stats & Chart" },
+    { id: "ranges", label: "Trade Ranges", icon: "grid" },
+    { id: "logs", label: "Trade Log", icon: "list" },
+    { id: "stats", label: "Analytics", icon: "chart" },
   ];
+
+  const getRelativeTime = (date) => {
+    const now = new Date();
+    const diff = now - new Date(date);
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "Just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days}d ago`;
+  };
 
   if (!apiConnected) {
     return (
-      <div className="atr-container">
-        <div className="atr-card">
-          <div className="atr-header">
-            <h2 className="atr-title">Auto Trade Range</h2>
-            <span className="atr-status atr-status-off">Inactive</span>
+      <div className="at-container">
+        <div className="at-offline-card">
+          <div className="at-offline-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
           </div>
-          <p className="atr-subtitle">
-            Autonomous range-based trading — set buy/sell price ranges and let the bot trade 24/7.
+          <h2 className="at-offline-title">Auto Trade</h2>
+          <p className="at-offline-text">
+            Connect your WazirX exchange account to enable autonomous range-based trading.
+            The bot will monitor prices and execute trades 24/7 within your defined ranges.
           </p>
-          <div className="atr-notice">
-            Connect your WazirX account in the WazirX tab to enable auto trading.
+          <div className="at-offline-hint">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+            Go to the WazirX tab to connect your API keys
           </div>
         </div>
       </div>
@@ -336,478 +378,693 @@ export default function AutoTradeRange() {
   }
 
   return (
-    <div className="atr-container">
-      {/* Header Card */}
-      <div className="atr-card">
-        <div className="atr-header">
-          <div className="atr-header-left">
-            <h2 className="atr-title">Auto Trade Range</h2>
-            <span className={`atr-status ${engineRunning ? "atr-status-on" : "atr-status-off"}`}>
-              {engineRunning ? "Engine Running" : "Engine Stopped"}
-            </span>
+    <div className="at-container">
+      {/* ═══ COMMAND CENTER HEADER ═══ */}
+      <div className="at-command-center">
+        <div className="at-cc-top">
+          <div className="at-cc-identity">
+            <div className={`at-engine-orb ${engineRunning ? "at-orb-active" : "at-orb-idle"}`}>
+              <div className="at-orb-core" />
+              {engineRunning && <div className="at-orb-ring" />}
+              {engineRunning && <div className="at-orb-ring at-orb-ring-2" />}
+            </div>
+            <div className="at-cc-title-group">
+              <h2 className="at-cc-title">Auto Trade</h2>
+              <span className={`at-cc-status ${engineRunning ? "at-cc-status-live" : ""}`}>
+                {engineRunning ? "Engine Live" : "Engine Idle"}
+              </span>
+            </div>
           </div>
-          <div className="atr-header-right">
-            {engineRunning ? (
-              <button className="atr-engine-btn atr-engine-stop" onClick={stopEngine}>
-                Stop Engine
-              </button>
-            ) : (
-              <button
-                className="atr-engine-btn atr-engine-start"
-                onClick={startEngine}
-                disabled={activeRangeCount === 0}
-              >
-                Start Engine
-              </button>
+          <div className="at-cc-controls">
+            {lastEngineRun && (
+              <span className="at-cc-last-check">
+                Last scan: {lastEngineRun.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+              </span>
             )}
-          </div>
-        </div>
-        <p className="atr-subtitle">
-          Set buy/sell price ranges — the bot monitors prices every 15s and places orders automatically.
-        </p>
-
-        {/* Quick Stats Row */}
-        <div className="atr-quick-stats">
-          <div className="atr-stat-item">
-            <span className="atr-stat-label">Active Ranges</span>
-            <span className="atr-stat-value">{activeRangeCount}</span>
-          </div>
-          <div className="atr-stat-item">
-            <span className="atr-stat-label">Today's Trades</span>
-            <span className="atr-stat-value">{stats?.todayTrades || 0}</span>
-          </div>
-          <div className="atr-stat-item">
-            <span className="atr-stat-label">Today's P/L</span>
-            <span className={`atr-stat-value ${(stats?.todayPL || 0) >= 0 ? "atr-profit" : "atr-loss"}`}>
-              {(stats?.todayPL || 0) >= 0 ? "+" : ""}{"\u20B9"}{Math.abs(stats?.todayPL || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
-            </span>
-          </div>
-          <div className="atr-stat-item">
-            <span className="atr-stat-label">Total P/L</span>
-            <span className={`atr-stat-value ${(stats?.totalPL || 0) >= 0 ? "atr-profit" : "atr-loss"}`}>
-              {(stats?.totalPL || 0) >= 0 ? "+" : ""}{"\u20B9"}{Math.abs(stats?.totalPL || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
-            </span>
-          </div>
-          <div className="atr-stat-item">
-            <span className="atr-stat-label">Last Check</span>
-            <span className="atr-stat-value atr-stat-small">
-              {lastEngineRun ? lastEngineRun.toLocaleTimeString() : "---"}
-            </span>
+            <button
+              className={`at-engine-toggle ${engineRunning ? "at-engine-toggle-stop" : "at-engine-toggle-start"}`}
+              onClick={engineRunning ? stopEngine : startEngine}
+              disabled={!engineRunning && activeRangeCount === 0}
+            >
+              <span className="at-toggle-dot" />
+              {engineRunning ? "Stop" : "Start"}
+            </button>
           </div>
         </div>
 
-        {engineError && <div className="atr-error">{engineError}</div>}
+        {engineError && (
+          <div className="at-cc-error">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
+            </svg>
+            {engineError}
+          </div>
+        )}
+
+        {/* Stats Row */}
+        <div className="at-metrics-row">
+          <div className="at-metric">
+            <div className="at-metric-icon at-metric-icon-ranges">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
+              </svg>
+            </div>
+            <div className="at-metric-data">
+              <span className="at-metric-value">{activeRangeCount}</span>
+              <span className="at-metric-label">Active</span>
+            </div>
+          </div>
+          <div className="at-metric-divider" />
+          <div className="at-metric">
+            <div className="at-metric-icon at-metric-icon-trades">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" />
+              </svg>
+            </div>
+            <div className="at-metric-data">
+              <span className="at-metric-value">{stats?.todayTrades || 0}</span>
+              <span className="at-metric-label">Today</span>
+            </div>
+          </div>
+          <div className="at-metric-divider" />
+          <div className="at-metric">
+            <div className="at-metric-icon at-metric-icon-pl">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+              </svg>
+            </div>
+            <div className="at-metric-data">
+              <span className={`at-metric-value ${(stats?.todayPL || 0) >= 0 ? "at-text-green" : "at-text-red"}`}>
+                {(stats?.todayPL || 0) >= 0 ? "+" : ""}{"\u20B9"}{Math.abs(stats?.todayPL || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+              </span>
+              <span className="at-metric-label">Today P/L</span>
+            </div>
+          </div>
+          <div className="at-metric-divider" />
+          <div className="at-metric">
+            <div className="at-metric-icon at-metric-icon-total">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" /><path d="M3 5v14a2 2 0 0 0 2 2h16v-5" /><path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
+              </svg>
+            </div>
+            <div className="at-metric-data">
+              <span className={`at-metric-value ${(stats?.totalPL || 0) >= 0 ? "at-text-green" : "at-text-red"}`}>
+                {(stats?.totalPL || 0) >= 0 ? "+" : ""}{"\u20B9"}{Math.abs(stats?.totalPL || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+              </span>
+              <span className="at-metric-label">Total P/L</span>
+            </div>
+          </div>
+          <div className="at-metric-divider" />
+          <div className="at-metric">
+            <div className="at-metric-icon at-metric-icon-win">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+            </div>
+            <div className="at-metric-data">
+              <span className="at-metric-value">{winRate}%</span>
+              <span className="at-metric-label">Win Rate</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Sub-tabs */}
-      <div className="atr-tabs">
+      {/* ═══ SECTION TABS ═══ */}
+      <div className="at-nav">
         {sections.map(s => (
           <button
             key={s.id}
-            className={`atr-tab ${activeSection === s.id ? "atr-tab-active" : ""}`}
+            className={`at-nav-tab ${activeSection === s.id ? "at-nav-tab-active" : ""}`}
             onClick={() => setActiveSection(s.id)}
           >
-            {s.label}
+            <span className="at-nav-tab-label">{s.label}</span>
+            {s.id === "ranges" && ranges.length > 0 && (
+              <span className="at-nav-badge">{ranges.length}</span>
+            )}
+            {s.id === "logs" && logs.length > 0 && (
+              <span className="at-nav-badge">{logs.length}</span>
+            )}
           </button>
         ))}
       </div>
 
-      {/* === TRADE RANGES === */}
+      {/* ═══ TRADE RANGES SECTION ═══ */}
       {activeSection === "ranges" && (
-        <>
+        <div className="at-ranges-section">
+          {/* Create Range Toggle */}
+          <button
+            className={`at-create-toggle ${showForm ? "at-create-toggle-open" : ""}`}
+            onClick={() => setShowForm(!showForm)}
+          >
+            <span className="at-create-toggle-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </span>
+            <span>New Trade Range</span>
+            <svg className="at-create-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+
           {/* Create New Range Form */}
-          <div className="atr-card">
-            <h3 className="atr-card-title">Create New Range</h3>
-            <form className="atr-form" onSubmit={handleCreateRange}>
-              <div className="atr-form-row">
-                <div className="atr-form-group">
-                  <label className="atr-label">Token</label>
-                  <select
-                    value={formToken}
-                    onChange={e => { setFormToken(e.target.value); setFormLower(""); setFormUpper(""); }}
-                    className="atr-input"
-                  >
-                    {SUPPORTED_SYMBOLS.map(s => (
-                      <option key={s} value={s}>{s}/INR</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="atr-form-group">
-                  <label className="atr-label">Current Price</label>
-                  <div className="atr-current-price">
-                    {currentFormPrice ? formatPrice(currentFormPrice) : "---"}
-                    <button type="button" className="atr-autofill-btn" onClick={prefillPrices}>
-                      Auto-fill +-3%
-                    </button>
+          {showForm && (
+            <div className="at-form-card">
+              <form className="at-form" onSubmit={handleCreateRange}>
+                <div className="at-form-grid">
+                  <div className="at-form-group">
+                    <label className="at-label">Token</label>
+                    <select
+                      value={formToken}
+                      onChange={e => { setFormToken(e.target.value); setFormLower(""); setFormUpper(""); }}
+                      className="at-select"
+                    >
+                      {SUPPORTED_SYMBOLS.map(s => (
+                        <option key={s} value={s}>{s}/INR</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="at-form-group">
+                    <label className="at-label">Current Price</label>
+                    <div className="at-price-display">
+                      <span className="at-price-value">
+                        {currentFormPrice ? formatPrice(currentFormPrice) : "---"}
+                      </span>
+                      <button type="button" className="at-autofill" onClick={prefillPrices} title="Auto-fill ±3% range">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.78 7.78 5.5 5.5 0 0 1 7.78-7.78zM15.5 15.5L19 19" />
+                        </svg>
+                        ±3%
+                      </button>
+                    </div>
+                  </div>
+                  <div className="at-form-group">
+                    <label className="at-label">
+                      <span className="at-label-dot at-dot-green" />
+                      Buy Trigger (INR)
+                    </label>
+                    <input
+                      type="number"
+                      value={formLower}
+                      onChange={e => setFormLower(e.target.value)}
+                      className="at-input"
+                      placeholder="Buy when price drops to..."
+                      min="0"
+                      step="any"
+                    />
+                  </div>
+                  <div className="at-form-group">
+                    <label className="at-label">
+                      <span className="at-label-dot at-dot-red" />
+                      Sell Trigger (INR)
+                    </label>
+                    <input
+                      type="number"
+                      value={formUpper}
+                      onChange={e => setFormUpper(e.target.value)}
+                      className="at-input"
+                      placeholder="Sell when price rises to..."
+                      min="0"
+                      step="any"
+                    />
+                  </div>
+                  <div className="at-form-group">
+                    <label className="at-label">Quantity per Trade</label>
+                    <input
+                      type="number"
+                      value={formQty}
+                      onChange={e => setFormQty(e.target.value)}
+                      className="at-input"
+                      placeholder={`Amount of ${formToken}`}
+                      min="0"
+                      step="any"
+                    />
+                    {formTotal > 0 && (
+                      <span className="at-form-hint">
+                        ~{"\u20B9"}{formTotal.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                      </span>
+                    )}
+                  </div>
+                  <div className="at-form-group">
+                    <label className="at-label">Max Trades/Day</label>
+                    <input
+                      type="number"
+                      value={formMaxTrades}
+                      onChange={e => setFormMaxTrades(e.target.value)}
+                      className="at-input"
+                      placeholder="0 = unlimited"
+                      min="0"
+                      step="1"
+                    />
                   </div>
                 </div>
-              </div>
-              <div className="atr-form-row">
-                <div className="atr-form-group">
-                  <label className="atr-label">Lower Price (Buy Trigger) INR</label>
-                  <input
-                    type="number"
-                    value={formLower}
-                    onChange={e => setFormLower(e.target.value)}
-                    className="atr-input"
-                    placeholder="Buy when price drops to..."
-                    min="0"
-                    step="any"
-                  />
-                </div>
-                <div className="atr-form-group">
-                  <label className="atr-label">Upper Price (Sell Trigger) INR</label>
-                  <input
-                    type="number"
-                    value={formUpper}
-                    onChange={e => setFormUpper(e.target.value)}
-                    className="atr-input"
-                    placeholder="Sell when price rises to..."
-                    min="0"
-                    step="any"
-                  />
-                </div>
-              </div>
-              <div className="atr-form-row">
-                <div className="atr-form-group">
-                  <label className="atr-label">Quantity per Trade</label>
-                  <input
-                    type="number"
-                    value={formQty}
-                    onChange={e => setFormQty(e.target.value)}
-                    className="atr-input"
-                    placeholder={`Amount of ${formToken}`}
-                    min="0"
-                    step="any"
-                  />
-                  {formTotal > 0 && (
-                    <span className="atr-form-hint">
-                      Approx. value: {"\u20B9"}{formTotal.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
-                    </span>
-                  )}
-                </div>
-                <div className="atr-form-group">
-                  <label className="atr-label">Max Trades/Day (0 = unlimited)</label>
-                  <input
-                    type="number"
-                    value={formMaxTrades}
-                    onChange={e => setFormMaxTrades(e.target.value)}
-                    className="atr-input"
-                    placeholder="0"
-                    min="0"
-                    step="1"
-                  />
-                </div>
-              </div>
 
-              {/* Range preview */}
-              {formLower && formUpper && parseFloat(formUpper) > parseFloat(formLower) && (
-                <div className="atr-range-preview">
-                  <div className="atr-range-bar">
-                    <div className="atr-range-marker atr-range-lower">
-                      <span className="atr-range-marker-label">Buy</span>
-                      <span className="atr-range-marker-price">{"\u20B9"}{parseFloat(formLower).toLocaleString("en-IN")}</span>
+                {/* Range preview */}
+                {formLower && formUpper && parseFloat(formUpper) > parseFloat(formLower) && (
+                  <div className="at-preview">
+                    <div className="at-preview-bar">
+                      <div className="at-preview-track">
+                        <div className="at-preview-fill" />
+                        {currentFormPrice && (
+                          <div
+                            className="at-preview-cursor"
+                            style={{
+                              left: `${Math.min(100, Math.max(0,
+                                ((currentFormPrice - parseFloat(formLower)) / (parseFloat(formUpper) - parseFloat(formLower))) * 100
+                              ))}%`,
+                            }}
+                          />
+                        )}
+                      </div>
+                      <div className="at-preview-labels">
+                        <span className="at-text-green">{"\u20B9"}{parseFloat(formLower).toLocaleString("en-IN")}</span>
+                        {currentFormPrice && <span className="at-preview-now">Now</span>}
+                        <span className="at-text-red">{"\u20B9"}{parseFloat(formUpper).toLocaleString("en-IN")}</span>
+                      </div>
                     </div>
-                    <div className="atr-range-fill" />
-                    {currentFormPrice && (
-                      <div
-                        className="atr-range-current"
-                        style={{
-                          left: `${Math.min(100, Math.max(0,
-                            ((currentFormPrice - parseFloat(formLower)) / (parseFloat(formUpper) - parseFloat(formLower))) * 100
-                          ))}%`,
-                        }}
-                      >
-                        <span className="atr-range-current-dot" />
-                        <span className="atr-range-current-label">Now</span>
+                    <div className="at-preview-spread">
+                      Spread: {"\u20B9"}{(parseFloat(formUpper) - parseFloat(formLower)).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                      {" "}({(((parseFloat(formUpper) - parseFloat(formLower)) / parseFloat(formLower)) * 100).toFixed(2)}%)
+                    </div>
+                  </div>
+                )}
+
+                <div className="at-form-footer">
+                  {formError && <div className="at-form-error">{formError}</div>}
+                  {formSuccess && <div className="at-form-success">{formSuccess}</div>}
+                  <button
+                    type="submit"
+                    className="at-submit"
+                    disabled={formSubmitting || !formLower || !formUpper || !formQty}
+                  >
+                    {formSubmitting ? (
+                      <span className="at-submit-loading">Creating...</span>
+                    ) : (
+                      <>Create Range</>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* Active Ranges */}
+          {loading ? (
+            <div className="at-loading">
+              <div className="at-loading-spinner" />
+              <span>Loading trade ranges...</span>
+            </div>
+          ) : ranges.length === 0 ? (
+            <div className="at-empty-state">
+              <div className="at-empty-icon">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" />
+                </svg>
+              </div>
+              <h3>No Trade Ranges</h3>
+              <p>Create your first range to start autonomous trading.</p>
+              {!showForm && (
+                <button className="at-empty-cta" onClick={() => setShowForm(true)}>
+                  Create Trade Range
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="at-ranges-grid">
+              {ranges.map(range => {
+                const p = wazirxPrices[range.token];
+                const currentPrice = p?.priceInr || 0;
+                const inRange = currentPrice >= range.lowerPrice && currentPrice <= range.upperPrice;
+                const belowRange = currentPrice < range.lowerPrice;
+                const aboveRange = currentPrice > range.upperPrice;
+
+                const position = currentPrice > 0
+                  ? Math.min(100, Math.max(0,
+                      ((currentPrice - range.lowerPrice) / (range.upperPrice - range.lowerPrice)) * 100
+                    ))
+                  : 50;
+
+                const signal = belowRange ? "buy" : aboveRange ? "sell" : "hold";
+                const tokenColor = TOKEN_COLORS[range.token] || "#6366f1";
+                const isExpanded = expandedRange === range._id;
+
+                return (
+                  <div
+                    key={range._id}
+                    className={`at-range-card ${!range.active ? "at-range-paused" : ""} ${signal === "buy" ? "at-range-signal-buy" : signal === "sell" ? "at-range-signal-sell" : ""}`}
+                  >
+                    {/* Card Header */}
+                    <div className="at-range-head">
+                      <div className="at-range-identity">
+                        <div className="at-token-badge" style={{ background: `${tokenColor}20`, color: tokenColor, borderColor: `${tokenColor}40` }}>
+                          {range.token}
+                        </div>
+                        <div className="at-range-status-group">
+                          {range.active ? (
+                            <span className="at-range-live">Active</span>
+                          ) : (
+                            <span className="at-range-idle">Paused</span>
+                          )}
+                          {signal === "buy" && <span className="at-signal at-signal-buy">BUY</span>}
+                          {signal === "sell" && <span className="at-signal at-signal-sell">SELL</span>}
+                          {signal === "hold" && range.active && <span className="at-signal at-signal-hold">HOLD</span>}
+                        </div>
+                      </div>
+                      <div className="at-range-actions">
+                        <button
+                          className={`at-action-btn ${range.active ? "at-action-pause" : "at-action-resume"}`}
+                          onClick={() => toggleRange(range._id, range.active)}
+                          title={range.active ? "Pause" : "Resume"}
+                        >
+                          {range.active ? (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
+                          ) : (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+                          )}
+                        </button>
+                        <button
+                          className="at-action-btn at-action-delete"
+                          onClick={() => deleteRange(range._id)}
+                          title="Delete"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Price Bar */}
+                    <div className="at-range-bar-wrap">
+                      <div className="at-range-bar">
+                        <div className="at-range-bar-fill" />
+                        <div
+                          className={`at-range-bar-dot ${signal === "buy" ? "at-bar-dot-buy" : signal === "sell" ? "at-bar-dot-sell" : "at-bar-dot-hold"}`}
+                          style={{ left: `${position}%` }}
+                        />
+                      </div>
+                      <div className="at-range-bar-prices">
+                        <span className="at-text-green">{"\u20B9"}{range.lowerPrice.toLocaleString("en-IN")}</span>
+                        <span className="at-range-current-price">
+                          {currentPrice ? formatPrice(currentPrice) : "---"}
+                        </span>
+                        <span className="at-text-red">{"\u20B9"}{range.upperPrice.toLocaleString("en-IN")}</span>
+                      </div>
+                    </div>
+
+                    {/* Key Stats */}
+                    <div className="at-range-stats">
+                      <div className="at-range-stat">
+                        <span className="at-range-stat-val">{range.quantity} {range.token}</span>
+                        <span className="at-range-stat-lbl">Qty</span>
+                      </div>
+                      <div className="at-range-stat">
+                        <span className="at-range-stat-val">{range.totalBuys}</span>
+                        <span className="at-range-stat-lbl">Buys</span>
+                      </div>
+                      <div className="at-range-stat">
+                        <span className="at-range-stat-val">{range.totalSells}</span>
+                        <span className="at-range-stat-lbl">Sells</span>
+                      </div>
+                      <div className="at-range-stat">
+                        <span className={`at-range-stat-val ${range.totalProfitLoss >= 0 ? "at-text-green" : "at-text-red"}`}>
+                          {range.totalProfitLoss >= 0 ? "+" : ""}{"\u20B9"}{Math.abs(range.totalProfitLoss).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                        </span>
+                        <span className="at-range-stat-lbl">P/L</span>
+                      </div>
+                    </div>
+
+                    {/* Expandable Details */}
+                    <button className="at-range-expand" onClick={() => setExpandedRange(isExpanded ? null : range._id)}>
+                      <span>{isExpanded ? "Less" : "Details"}</span>
+                      <svg className={`at-expand-icon ${isExpanded ? "at-expand-open" : ""}`} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </button>
+
+                    {isExpanded && (
+                      <div className="at-range-details">
+                        {range.lastAction && (
+                          <div className="at-range-detail-row">
+                            <span className="at-detail-label">Last Action</span>
+                            <span className={`at-detail-value ${range.lastAction === "buy" ? "at-text-green" : "at-text-red"}`}>
+                              {range.lastAction.toUpperCase()} - {getRelativeTime(range.lastActionAt)}
+                            </span>
+                          </div>
+                        )}
+                        {range.maxTradesPerDay > 0 && (
+                          <div className="at-range-detail-row">
+                            <span className="at-detail-label">Daily Limit</span>
+                            <span className="at-detail-value">{range.maxTradesPerDay} trades/day</span>
+                          </div>
+                        )}
+                        <div className="at-range-detail-row">
+                          <span className="at-detail-label">Spread</span>
+                          <span className="at-detail-value">
+                            {"\u20B9"}{(range.upperPrice - range.lowerPrice).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                            {" "}({(((range.upperPrice - range.lowerPrice) / range.lowerPrice) * 100).toFixed(2)}%)
+                          </span>
+                        </div>
+                        <div className="at-range-detail-row">
+                          <span className="at-detail-label">Created</span>
+                          <span className="at-detail-value">{new Date(range.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
+                        </div>
                       </div>
                     )}
-                    <div className="atr-range-marker atr-range-upper">
-                      <span className="atr-range-marker-label">Sell</span>
-                      <span className="atr-range-marker-price">{"\u20B9"}{parseFloat(formUpper).toLocaleString("en-IN")}</span>
-                    </div>
                   </div>
-                  <div className="atr-range-spread">
-                    Spread: {"\u20B9"}{(parseFloat(formUpper) - parseFloat(formLower)).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
-                    {" "}({(((parseFloat(formUpper) - parseFloat(formLower)) / parseFloat(formLower)) * 100).toFixed(2)}%)
-                  </div>
-                </div>
-              )}
-
-              <div className="atr-form-actions">
-                <button
-                  type="submit"
-                  className="atr-submit-btn"
-                  disabled={formSubmitting || !formLower || !formUpper || !formQty}
-                >
-                  {formSubmitting ? "Creating..." : "Create Trade Range"}
-                </button>
-              </div>
-
-              {formError && <div className="atr-form-error">{formError}</div>}
-              {formSuccess && <div className="atr-form-success">{formSuccess}</div>}
-            </form>
-          </div>
-
-          {/* Active Ranges List */}
-          <div className="atr-card">
-            <div className="atr-card-header">
-              <h3 className="atr-card-title">Active Ranges ({ranges.length})</h3>
-              <button className="atr-refresh-btn" onClick={fetchRanges}>Refresh</button>
-            </div>
-
-            {loading ? (
-              <div className="atr-loading">Loading trade ranges...</div>
-            ) : ranges.length === 0 ? (
-              <div className="atr-empty">No trade ranges configured yet. Create one above to get started.</div>
-            ) : (
-              <div className="atr-ranges-list">
-                {ranges.map(range => {
-                  const p = wazirxPrices[range.token];
-                  const currentPrice = p?.priceInr || 0;
-                  const inRange = currentPrice >= range.lowerPrice && currentPrice <= range.upperPrice;
-                  const belowRange = currentPrice < range.lowerPrice;
-                  const aboveRange = currentPrice > range.upperPrice;
-
-                  // Position indicator (0-100%)
-                  const position = currentPrice > 0
-                    ? Math.min(100, Math.max(0,
-                        ((currentPrice - range.lowerPrice) / (range.upperPrice - range.lowerPrice)) * 100
-                      ))
-                    : 50;
-
-                  return (
-                    <div key={range._id} className={`atr-range-item ${!range.active ? "atr-range-inactive" : ""}`}>
-                      <div className="atr-range-item-header">
-                        <div className="atr-range-item-left">
-                          <strong className="atr-range-token">{range.token}</strong>
-                          <span className={`atr-range-badge ${range.active ? "atr-badge-active" : "atr-badge-paused"}`}>
-                            {range.active ? "Active" : "Paused"}
-                          </span>
-                          {belowRange && <span className="atr-range-signal atr-signal-buy">Buy Zone</span>}
-                          {aboveRange && <span className="atr-range-signal atr-signal-sell">Sell Zone</span>}
-                          {inRange && <span className="atr-range-signal atr-signal-wait">In Range</span>}
-                        </div>
-                        <div className="atr-range-item-actions">
-                          <button
-                            className={`atr-toggle-btn ${range.active ? "atr-toggle-pause" : "atr-toggle-resume"}`}
-                            onClick={() => toggleRange(range._id, range.active)}
-                          >
-                            {range.active ? "Pause" : "Resume"}
-                          </button>
-                          <button className="atr-delete-btn" onClick={() => deleteRange(range._id)}>
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="atr-range-details">
-                        <div className="atr-range-detail">
-                          <span className="atr-detail-label">Buy @</span>
-                          <span className="atr-detail-value atr-profit">{"\u20B9"}{range.lowerPrice.toLocaleString("en-IN")}</span>
-                        </div>
-                        <div className="atr-range-detail">
-                          <span className="atr-detail-label">Sell @</span>
-                          <span className="atr-detail-value atr-loss">{"\u20B9"}{range.upperPrice.toLocaleString("en-IN")}</span>
-                        </div>
-                        <div className="atr-range-detail">
-                          <span className="atr-detail-label">Qty</span>
-                          <span className="atr-detail-value">{range.quantity} {range.token}</span>
-                        </div>
-                        <div className="atr-range-detail">
-                          <span className="atr-detail-label">Now</span>
-                          <span className="atr-detail-value">{currentPrice ? formatPrice(currentPrice) : "---"}</span>
-                        </div>
-                        <div className="atr-range-detail">
-                          <span className="atr-detail-label">Buys</span>
-                          <span className="atr-detail-value">{range.totalBuys}</span>
-                        </div>
-                        <div className="atr-range-detail">
-                          <span className="atr-detail-label">Sells</span>
-                          <span className="atr-detail-value">{range.totalSells}</span>
-                        </div>
-                        <div className="atr-range-detail">
-                          <span className="atr-detail-label">P/L</span>
-                          <span className={`atr-detail-value ${range.totalProfitLoss >= 0 ? "atr-profit" : "atr-loss"}`}>
-                            {range.totalProfitLoss >= 0 ? "+" : ""}{"\u20B9"}{Math.abs(range.totalProfitLoss).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Mini range bar */}
-                      <div className="atr-mini-range">
-                        <div className="atr-mini-range-bar">
-                          <div
-                            className="atr-mini-range-indicator"
-                            style={{ left: `${position}%` }}
-                          />
-                        </div>
-                        <div className="atr-mini-range-labels">
-                          <span>{"\u20B9"}{range.lowerPrice.toLocaleString("en-IN")}</span>
-                          <span>{"\u20B9"}{range.upperPrice.toLocaleString("en-IN")}</span>
-                        </div>
-                      </div>
-
-                      {range.lastAction && (
-                        <div className="atr-range-last-action">
-                          Last: {range.lastAction.toUpperCase()} at {new Date(range.lastActionAt).toLocaleString("en-IN")}
-                        </div>
-                      )}
-                      {range.maxTradesPerDay > 0 && (
-                        <div className="atr-range-limit">
-                          Daily limit: {range.maxTradesPerDay} trades/day
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </>
-      )}
-
-      {/* === TRADE LOG === */}
-      {activeSection === "logs" && (
-        <div className="atr-card">
-          <div className="atr-card-header">
-            <h3 className="atr-card-title">Trade Execution Log</h3>
-            <button className="atr-refresh-btn" onClick={fetchLogs}>Refresh</button>
-          </div>
-
-          {logs.length === 0 ? (
-            <div className="atr-empty">No trades executed yet. The bot will log trades here as they happen.</div>
-          ) : (
-            <div className="atr-log-list">
-              <div className="atr-log-row atr-log-header">
-                <span className="atr-log-col atr-log-col-time">Time</span>
-                <span className="atr-log-col atr-log-col-token">Token</span>
-                <span className="atr-log-col atr-log-col-side">Side</span>
-                <span className="atr-log-col atr-log-col-price">Price</span>
-                <span className="atr-log-col atr-log-col-qty">Qty</span>
-                <span className="atr-log-col atr-log-col-total">Total</span>
-                <span className="atr-log-col atr-log-col-status">Status</span>
-                <span className="atr-log-col atr-log-col-pl">P/L</span>
-              </div>
-              {logs.map(log => (
-                <div key={log._id} className={`atr-log-row ${log.status === "failed" ? "atr-log-failed" : ""}`}>
-                  <span className="atr-log-col atr-log-col-time">
-                    {new Date(log.createdAt).toLocaleString("en-IN", {
-                      day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", second: "2-digit",
-                    })}
-                  </span>
-                  <span className="atr-log-col atr-log-col-token">
-                    <strong>{log.token}</strong>
-                  </span>
-                  <span className={`atr-log-col atr-log-col-side ${log.side === "buy" ? "atr-profit" : "atr-loss"}`}>
-                    {log.side.toUpperCase()}
-                  </span>
-                  <span className="atr-log-col atr-log-col-price">
-                    {"\u20B9"}{log.price.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
-                  </span>
-                  <span className="atr-log-col atr-log-col-qty">{log.quantity}</span>
-                  <span className="atr-log-col atr-log-col-total">
-                    {"\u20B9"}{log.total.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
-                  </span>
-                  <span className={`atr-log-col atr-log-col-status atr-status-${log.status}`}>
-                    {log.status}
-                  </span>
-                  <span className={`atr-log-col atr-log-col-pl ${(log.profitLoss || 0) >= 0 ? "atr-profit" : "atr-loss"}`}>
-                    {log.profitLoss ? `${log.profitLoss >= 0 ? "+" : ""}${"\u20B9"}${Math.abs(log.profitLoss).toLocaleString("en-IN", { maximumFractionDigits: 2 })}` : "---"}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
       )}
 
-      {/* === STATS & CHART === */}
+      {/* ═══ TRADE LOG SECTION ═══ */}
+      {activeSection === "logs" && (
+        <div className="at-logs-section">
+          <div className="at-section-header">
+            <h3 className="at-section-title">Trade Execution Log</h3>
+            <button className="at-refresh" onClick={fetchLogs}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+              </svg>
+              Refresh
+            </button>
+          </div>
+
+          {logs.length === 0 ? (
+            <div className="at-empty-state">
+              <div className="at-empty-icon">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" />
+                </svg>
+              </div>
+              <h3>No Trades Yet</h3>
+              <p>Trades will appear here as the engine executes them automatically.</p>
+            </div>
+          ) : (
+            <>
+              {/* Desktop Table */}
+              <div className="at-log-table-wrap">
+                <div className="at-log-table">
+                  <div className="at-log-row at-log-row-header">
+                    <span className="at-log-cell at-log-time">Time</span>
+                    <span className="at-log-cell at-log-token">Token</span>
+                    <span className="at-log-cell at-log-side">Side</span>
+                    <span className="at-log-cell at-log-price">Price</span>
+                    <span className="at-log-cell at-log-qty">Qty</span>
+                    <span className="at-log-cell at-log-total">Total</span>
+                    <span className="at-log-cell at-log-status">Status</span>
+                    <span className="at-log-cell at-log-pl">P/L</span>
+                  </div>
+                  {logs.map(log => {
+                    const tokenColor = TOKEN_COLORS[log.token] || "#6366f1";
+                    return (
+                      <div key={log._id} className={`at-log-row ${log.status === "failed" ? "at-log-row-failed" : ""}`}>
+                        <span className="at-log-cell at-log-time">
+                          {new Date(log.createdAt).toLocaleString("en-IN", {
+                            day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
+                          })}
+                        </span>
+                        <span className="at-log-cell at-log-token">
+                          <span className="at-log-token-dot" style={{ background: tokenColor }} />
+                          {log.token}
+                        </span>
+                        <span className={`at-log-cell at-log-side ${log.side === "buy" ? "at-text-green" : "at-text-red"}`}>
+                          {log.side.toUpperCase()}
+                        </span>
+                        <span className="at-log-cell at-log-price">
+                          {"\u20B9"}{log.price.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                        </span>
+                        <span className="at-log-cell at-log-qty">{log.quantity}</span>
+                        <span className="at-log-cell at-log-total">
+                          {"\u20B9"}{log.total.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                        </span>
+                        <span className={`at-log-cell at-log-status at-status-${log.status}`}>
+                          <span className={`at-status-dot at-status-dot-${log.status}`} />
+                          {log.status}
+                        </span>
+                        <span className={`at-log-cell at-log-pl ${(log.profitLoss || 0) >= 0 ? "at-text-green" : "at-text-red"}`}>
+                          {log.profitLoss ? `${log.profitLoss >= 0 ? "+" : ""}\u20B9${Math.abs(log.profitLoss).toLocaleString("en-IN", { maximumFractionDigits: 2 })}` : "---"}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Mobile Cards */}
+              <div className="at-log-cards">
+                {logs.map(log => {
+                  const tokenColor = TOKEN_COLORS[log.token] || "#6366f1";
+                  return (
+                    <div key={log._id} className={`at-log-card ${log.status === "failed" ? "at-log-card-failed" : ""}`}>
+                      <div className="at-log-card-top">
+                        <div className="at-log-card-left">
+                          <span className="at-log-token-dot" style={{ background: tokenColor }} />
+                          <strong>{log.token}</strong>
+                          <span className={log.side === "buy" ? "at-text-green" : "at-text-red"}>
+                            {log.side.toUpperCase()}
+                          </span>
+                        </div>
+                        <span className={`at-log-card-pl ${(log.profitLoss || 0) >= 0 ? "at-text-green" : "at-text-red"}`}>
+                          {log.profitLoss ? `${log.profitLoss >= 0 ? "+" : ""}\u20B9${Math.abs(log.profitLoss).toLocaleString("en-IN", { maximumFractionDigits: 2 })}` : "---"}
+                        </span>
+                      </div>
+                      <div className="at-log-card-details">
+                        <span>{"\u20B9"}{log.price.toLocaleString("en-IN", { maximumFractionDigits: 2 })} x {log.quantity}</span>
+                        <span className={`at-status-${log.status}`}>{log.status}</span>
+                      </div>
+                      <div className="at-log-card-time">
+                        {getRelativeTime(log.createdAt)}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ═══ ANALYTICS SECTION ═══ */}
       {activeSection === "stats" && (
-        <>
-          {/* Stats Summary */}
-          <div className="atr-card">
-            <h3 className="atr-card-title">Trading Statistics</h3>
-            <div className="atr-stats-grid">
-              <div className="atr-stats-box">
-                <span className="atr-stats-box-label">Today's Trades</span>
-                <span className="atr-stats-box-value">{stats?.todayTrades || 0}</span>
-                <div className="atr-stats-box-sub">
-                  <span className="atr-profit">{stats?.todayBuys || 0} buys</span>
-                  <span className="atr-loss">{stats?.todaySells || 0} sells</span>
-                </div>
-              </div>
-              <div className="atr-stats-box">
-                <span className="atr-stats-box-label">Today's P/L</span>
-                <span className={`atr-stats-box-value ${(stats?.todayPL || 0) >= 0 ? "atr-profit" : "atr-loss"}`}>
-                  {(stats?.todayPL || 0) >= 0 ? "+" : ""}{"\u20B9"}{Math.abs(stats?.todayPL || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+        <div className="at-analytics-section">
+          {/* Stats Cards */}
+          <div className="at-stats-cards">
+            <div className="at-stat-card at-stat-card-today">
+              <div className="at-stat-card-header">
+                <span className="at-stat-card-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                  </svg>
                 </span>
+                <span className="at-stat-card-label">Today</span>
               </div>
-              <div className="atr-stats-box">
-                <span className="atr-stats-box-label">All-Time Trades</span>
-                <span className="atr-stats-box-value">{stats?.totalTrades || 0}</span>
-                <div className="atr-stats-box-sub">
-                  <span className="atr-profit">{stats?.totalBuys || 0} buys</span>
-                  <span className="atr-loss">{stats?.totalSells || 0} sells</span>
-                </div>
+              <span className="at-stat-card-value">{stats?.todayTrades || 0} trades</span>
+              <div className="at-stat-card-sub">
+                <span className="at-text-green">{stats?.todayBuys || 0} buys</span>
+                <span className="at-text-red">{stats?.todaySells || 0} sells</span>
               </div>
-              <div className="atr-stats-box">
-                <span className="atr-stats-box-label">All-Time P/L</span>
-                <span className={`atr-stats-box-value ${(stats?.totalPL || 0) >= 0 ? "atr-profit" : "atr-loss"}`}>
-                  {(stats?.totalPL || 0) >= 0 ? "+" : ""}{"\u20B9"}{Math.abs(stats?.totalPL || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+            </div>
+            <div className="at-stat-card">
+              <div className="at-stat-card-header">
+                <span className="at-stat-card-icon at-stat-icon-pl">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" />
+                  </svg>
                 </span>
+                <span className="at-stat-card-label">Today's P/L</span>
               </div>
+              <span className={`at-stat-card-value ${(stats?.todayPL || 0) >= 0 ? "at-text-green" : "at-text-red"}`}>
+                {(stats?.todayPL || 0) >= 0 ? "+" : ""}{"\u20B9"}{Math.abs(stats?.todayPL || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+              </span>
+            </div>
+            <div className="at-stat-card">
+              <div className="at-stat-card-header">
+                <span className="at-stat-card-icon at-stat-icon-all">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" /><path d="M3 5v14a2 2 0 0 0 2 2h16v-5" /><path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
+                  </svg>
+                </span>
+                <span className="at-stat-card-label">All Time</span>
+              </div>
+              <span className="at-stat-card-value">{stats?.totalTrades || 0} trades</span>
+              <div className="at-stat-card-sub">
+                <span className="at-text-green">{stats?.totalBuys || 0} buys</span>
+                <span className="at-text-red">{stats?.totalSells || 0} sells</span>
+              </div>
+            </div>
+            <div className="at-stat-card">
+              <div className="at-stat-card-header">
+                <span className="at-stat-card-icon at-stat-icon-total">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                  </svg>
+                </span>
+                <span className="at-stat-card-label">All-Time P/L</span>
+              </div>
+              <span className={`at-stat-card-value ${(stats?.totalPL || 0) >= 0 ? "at-text-green" : "at-text-red"}`}>
+                {(stats?.totalPL || 0) >= 0 ? "+" : ""}{"\u20B9"}{Math.abs(stats?.totalPL || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+              </span>
             </div>
           </div>
 
           {/* Chart */}
-          <div className="atr-card">
-            <div className="atr-card-header">
-              <h3 className="atr-card-title">Daily Trade Volume & P/L (30 Days)</h3>
-              <button className="atr-refresh-btn" onClick={fetchLogs}>Refresh</button>
+          <div className="at-chart-card">
+            <div className="at-section-header">
+              <h3 className="at-section-title">30-Day Performance</h3>
+              <button className="at-refresh" onClick={fetchLogs}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                </svg>
+                Refresh
+              </button>
             </div>
             {chartData ? (
-              <div className="atr-chart-container">
+              <div className="at-chart-wrap">
                 <Line data={chartData} options={chartOptions} />
               </div>
             ) : (
-              <div className="atr-empty">
+              <div className="at-chart-empty">
                 No trade data yet. The chart will populate as the bot executes trades.
               </div>
             )}
           </div>
 
-          {/* Daily breakdown table */}
+          {/* Daily Breakdown */}
           {dailyStats.length > 0 && (
-            <div className="atr-card">
-              <h3 className="atr-card-title">Daily Breakdown</h3>
-              <div className="atr-daily-table">
-                <div className="atr-daily-row atr-daily-header">
-                  <span>Date</span>
-                  <span>Trades</span>
-                  <span>Buys</span>
-                  <span>Sells</span>
-                  <span>Buy Vol</span>
-                  <span>Sell Vol</span>
-                  <span>P/L</span>
-                </div>
-                {[...dailyStats].reverse().map(d => (
-                  <div key={d.date} className="atr-daily-row">
-                    <span>{new Date(d.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}</span>
-                    <span>{d.trades}</span>
-                    <span className="atr-profit">{d.buys}</span>
-                    <span className="atr-loss">{d.sells}</span>
-                    <span>{"\u20B9"}{d.buyVolume.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</span>
-                    <span>{"\u20B9"}{d.sellVolume.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</span>
-                    <span className={d.profitLoss >= 0 ? "atr-profit" : "atr-loss"}>
-                      {d.profitLoss >= 0 ? "+" : ""}{"\u20B9"}{Math.abs(d.profitLoss).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
-                    </span>
+            <div className="at-daily-card">
+              <h3 className="at-section-title">Daily Breakdown</h3>
+              <div className="at-daily-table-wrap">
+                <div className="at-daily-table">
+                  <div className="at-daily-row at-daily-row-header">
+                    <span>Date</span>
+                    <span>Trades</span>
+                    <span>Buys</span>
+                    <span>Sells</span>
+                    <span>Buy Vol</span>
+                    <span>Sell Vol</span>
+                    <span>P/L</span>
                   </div>
-                ))}
+                  {[...dailyStats].reverse().map(d => (
+                    <div key={d.date} className="at-daily-row">
+                      <span>{new Date(d.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}</span>
+                      <span>{d.trades}</span>
+                      <span className="at-text-green">{d.buys}</span>
+                      <span className="at-text-red">{d.sells}</span>
+                      <span>{"\u20B9"}{d.buyVolume.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</span>
+                      <span>{"\u20B9"}{d.sellVolume.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</span>
+                      <span className={d.profitLoss >= 0 ? "at-text-green" : "at-text-red"}>
+                        {d.profitLoss >= 0 ? "+" : ""}{"\u20B9"}{Math.abs(d.profitLoss).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
-        </>
+        </div>
       )}
     </div>
   );
